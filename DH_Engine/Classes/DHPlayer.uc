@@ -91,6 +91,7 @@ var     int                     WeaponLockViolations;       // the number of vio
 var     DHSquadReplicationInfo  SquadReplicationInfo;
 var     bool                    bIgnoreSquadInvitations;
 var     bool                    bIgnoreSquadLeaderVolunteerPrompts;
+var     bool                    bIgnoreSquadLeaderAssistantVolunteerPrompts;
 var     int                     SquadMemberLocations[12];   // SQUAD_SIZE_MAX
 var     int                     SquadLeaderLocations[8];    // TEAM_SQUADS_MAX
 
@@ -5056,6 +5057,18 @@ simulated function ClientSquadLeaderVolunteerPrompt(int TeamIndex, int SquadInde
         class'DHSquadLeaderVolunteerInteraction'.default.ExpirationTime = ExpirationTime;
 
         Player.InteractionMaster.AddInteraction("DH_Engine.DHSquadLeaderVolunteerInteraction", Player);
+    }
+}
+
+simulated function ClientSquadAssistantVolunteerPrompt(int TeamIndex, int SquadIndex, DHPlayerReplicationInfo VolunteerPRI)
+{
+    if (!bIgnoreSquadLeaderAssistantVolunteerPrompts)
+    {
+        class'DHSquadLeaderAssistantVolunteerInteraction'.default.TeamIndex = TeamIndex;
+        class'DHSquadLeaderAssistantVolunteerInteraction'.default.SquadIndex = SquadIndex;
+        class'DHSquadLeaderAssistantVolunteerInteraction'.default.VolunteerPRI = VolunteerPRI;
+
+//        Player.InteractionMaster.AddInteraction(
     }
 }
 
