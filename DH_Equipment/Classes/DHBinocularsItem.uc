@@ -115,6 +115,9 @@ simulated function Fire(float F)
             return;
         }
 
+        // DEBUG: just fiddling around!
+        Spawn(class'DHObservationPoint',,, Instigator.Location + Instigator.EyePosition() + vect(0, 0, 64), Instigator.Rotation);
+
         // TODO: remove/change mortar observer functionality
         if (RI.bIsMortarObserver)
         {

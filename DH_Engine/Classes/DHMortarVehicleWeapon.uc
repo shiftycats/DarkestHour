@@ -188,12 +188,23 @@ simulated function Depress()
 // Also to add a bDebugCalibrate option that instantaneously fires a mortar shell at each elevation setting
 function Fire(Controller C)
 {
+    local DHPlayer PC;
+    local Projectile Projectile;
+
     if (ProjectileClass != none)
     {
         // Normal mortar fire
         if (!bDebugCalibrate)
         {
-            SpawnProjectile(ProjectileClass, false);
+            Projectile = SpawnProjectile(ProjectileClass, false);
+
+            PC = DHPlayer(C);
+
+            if (PC != none && PC.Viewpoint != none)
+            {
+                Log("found obs point, here we go!");
+                PC.ViewpointViewTarget = Projectile;
+            }
 
             if (DHMortarVehicle(Base) != none)
             {

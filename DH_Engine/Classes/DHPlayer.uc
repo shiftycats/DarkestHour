@@ -126,6 +126,21 @@ var     bool                    bSpectateAllowViewPoints;
 
 var     DHScoreManager          ScoreManager;
 
+// Viewpoint
+enum EViewpointMode
+{
+    VM_FreeLook,
+    VM_Target,
+    VM_Locked,
+    VM_Count
+};
+
+var     DHObservationPoint      Viewpoint;
+var     EViewpointMode          ViewpointMode;
+var     Actor                   ViewpointViewTarget;
+var     rotator                 ViewpointRotationOffset;
+var     bool                    bViewpointMode;
+
 replication
 {
     // Variables the server will replicate to the client that owns this actor
@@ -718,6 +733,12 @@ function UpdateRotation(float DeltaTime, float MaxPitch)
     local ROVehicle ROVeh;
     local rotator   NewRotation, ViewRotation;
     local float     TurnSpeedFactor;
+
+    if (Viewpoint != none && ViewpointMode == VM_FreeLook)
+    {
+        ViewpointRotationOffset.Yaw += DHHalfTurnSpeedFactor * DeltaTime * aTurn;
+//        ViewpointRotationOffset.Pitch += DHHalfTurnSpeedFactor * DeltaTime * aLookUp;
+    }
 
     if (Pawn != none)
     {
