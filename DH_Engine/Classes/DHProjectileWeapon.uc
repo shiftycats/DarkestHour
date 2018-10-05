@@ -1505,7 +1505,7 @@ Begin:
 // Play the reload animation & set a reload timer
 simulated function PlayReload()
 {
-    if (AmmoAmount(0) > 0 || (bTwoMagsCapacity && CurrentMagCount < 2))
+    if (AmmoAmount(0) > 0 || (bTwoMagsCapacity && CurrentMagCount < 2) || MagEmptyReloadAnim == '')
     {
         PlayAnimAndSetTimer(MagPartialReloadAnim, 1.0, 0.1);
     }
@@ -1567,7 +1567,8 @@ function PerformReload()
     CurrentMagLoad += PrimaryAmmoArray[CurrentMagIndex]; // add ammo from the new mag
 
     // For weapons that can load 2 clips/mags, check if we can load a 2nd clip (possible if weapon was completely empty at start of reload)
-    if (bTwoMagsCapacity && CurrentMagLoad <= FireMode[0].AmmoClass.default.InitialAmount && CurrentMagCount > 1)
+    // NOTE: The SMLE added from Mare Nostrum does not have a "reload from empty magazine"  animation, so we make an exception here.
+    if (bTwoMagsCapacity && CurrentMagLoad <= FireMode[0].AmmoClass.default.InitialAmount && CurrentMagCount > 1 && MagEmptyReloadAnim != '')
     {
         PrimaryAmmoArray.Remove(CurrentMagIndex, 1);
 
