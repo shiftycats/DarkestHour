@@ -8,7 +8,7 @@ class DHAlliedCorporalRoles extends DHAlliedRoles
 
 defaultproperties
 {
-    bRequiresSLorASL=true
+    bRequiresLeaderPosition=true
     MyName="Corporal"
     AltName="Corporal"
     Article="a "

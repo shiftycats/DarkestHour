@@ -23,7 +23,7 @@ var     bool                bCanCarryExtraAmmo;     // role can carry extra ammo
 var     bool                bSpawnWithExtraAmmo;    // role spawns with extra ammo
 
 var     bool                bExemptSquadRequirement;// this role will be exempt from the requirement of being in a squad to select
-var     bool                bRequiresSLorASL;       // player must be a SL or ASL to select this role, only applies when gametype has bSquadSpecialRolesOnly=true
+var     bool                bRequiresLeaderPosition;// player must be a SL or ASL to select this role, only applies when gametype has bSquadSpecialRolesOnly=true
 
 var     int                 AddedRoleRespawnTime; // extra time in seconds before re-spawning
 

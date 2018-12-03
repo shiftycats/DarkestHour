@@ -9,7 +9,7 @@ class DHAlliedSergeantRoles extends DHAlliedRoles
 defaultproperties
 {
     bIsLeader=true
-    bRequiresSLorASL=true
+    bRequiresLeaderPosition=true
     MyName="Sergeant"
     AltName="Sergeant"
     Article="a "

@@ -193,7 +193,7 @@ function Timer()
 
         // Squad leaders and their assistants should know where their teams'
         // other squad leaders are.
-        if (PRI.IsSLorASL())
+        if (PRI.IsLeaderPosition())
         {
             for (i = 0; i < GetTeamSquadLimit(PC.GetTeamNum()); ++i)
             {

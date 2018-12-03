@@ -3982,7 +3982,7 @@ function DrawPlayerIconsOnMap(Canvas C, AbsoluteCoordsInfo SubCoords, float MyMa
             DrawPlayerIconOnMap(C, SubCoords, MyMapScale, PlayerLocation, MapCenter, Viewport, PlayerYaw, SquadMemberColor, IconScale, OtherPRI.GetNamePrefix());
         }
 
-        if (PRI.IsSLorASL())
+        if (PRI.IsLeaderPosition())
         {
             for (i = 0; i < SRI.GetTeamSquadLimit(PC.GetTeamNum()); ++i)
             {

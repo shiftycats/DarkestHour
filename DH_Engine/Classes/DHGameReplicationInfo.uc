@@ -588,13 +588,17 @@ simulated function bool IsRallyPointIndexValid(DHPlayer PC, byte RallyPointIndex
 simulated function bool CanSpawnWithParameters(int SpawnPointIndex, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, optional bool bSkipTimeCheck)
 {
     local DHSpawnPointBase SP;
+    local DHRoleInfo RI;
     local class<DHVehicle> VehicleClass;
 
     if (VehiclePoolIndex != -1)
     {
         VehicleClass = class<DHVehicle>(GetVehiclePoolVehicleClass(VehiclePoolIndex));
 
+        RI = GetRole(TeamIndex, RoleIndex);
+
         if (VehicleClass == none ||
+            VehicleClass.default.bMustBeLeaderToSpawn && RI.bRequiresLeaderPosition ||
             VehicleClass.default.bMustBeInSquadToSpawn && SquadIndex == -1 ||
             !CanSpawnVehicle(VehiclePoolIndex, bSkipTimeCheck))
         {

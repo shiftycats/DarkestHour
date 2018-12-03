@@ -159,6 +159,8 @@ var     vector                                  ConstructionPlacementOffset;
 var     int                     VehiclePoolIndex;     // the vehicle pool index that this was spawned from
 var     DHSpawnPoint_Vehicle    SpawnPointAttachment; // a spawn vehicle's spawn point attachment
 var     DHSpawnPointBase        SpawnPoint;           // the spawn point that was used to spawn this vehicle
+
+var     bool                    bMustBeLeaderToSpawn; // Requires SL or ASL to spawn
 var     bool                    bMustBeInSquadToSpawn;
 
 // Debugging

@@ -8,7 +8,7 @@ class DHAxisCorporalRoles extends DHAxisRoles
 
 defaultproperties
 {
-    bRequiresSLorASL=true
+    bRequiresLeaderPosition=true
     MyName="Corporal"
     AltName="Obergefreiter"
     Article="a "

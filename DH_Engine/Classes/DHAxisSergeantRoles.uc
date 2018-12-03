@@ -9,7 +9,7 @@ class DHAxisSergeantRoles extends DHAxisRoles
 defaultproperties
 {
     bIsLeader=true
-    bRequiresSLorASL=true
+    bRequiresLeaderPosition=true
     MyName="Sergeant"
     AltName="Unteroffizier"
     Article="a "

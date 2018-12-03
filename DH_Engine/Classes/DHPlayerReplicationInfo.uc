@@ -70,7 +70,7 @@ simulated function bool IsAssistantLeader()
     return IsInSquad() && bIsSquadAssistant;
 }
 
-simulated function bool IsSLorASL()
+simulated function bool IsLeaderPosition()
 {
     return IsInSquad() && (SquadMemberIndex == 0 || bIsSquadAssistant);
 }
