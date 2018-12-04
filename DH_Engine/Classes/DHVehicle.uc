@@ -49,6 +49,9 @@ var     bool        bClientInitialized;          // clientside flag that replica
                                                  // (allows client code to determine whether actor is just being received through replication, e.g. in PostNetReceive)
 var     TreeMap_string_Object  NotifyParameters; // an object that can hold references to several other objects, which can be used by messages to build a tailored message
 
+// Requirements
+var byte            OwningSquadIndex;            // defaults to -1, otherwise indicates which squad owns this vehicle
+
 // Driver & driving
 var     bool        bNeedToInitializeDriver;     // clientside flag that we need to do some driver set up, once we receive the Driver actor
 var     float       MaxCriticalSpeed;            // if vehicle goes over max speed, it forces player to pull back on throttle
@@ -877,6 +880,7 @@ function Vehicle FindEntryVehicle(Pawn P)
 function bool TryToDrive(Pawn P)
 {
     local bool bEnemyVehicle;
+    local DHPlayerReplicationInfo PRI;
     local int  i;
 
     // Deny entry if vehicle is destroyed, or if player is on fire or reloading a weapon (plus several very obscure other reasons)
@@ -912,11 +916,23 @@ function bool TryToDrive(Pawn P)
         }
     }
 
+    // If squad owned vehicle
+    if (OwningSquadIndex >= 0)
+    {
+        PRI = DHPlayerReplicationInfo(P.PlayerReplicationInfo);
+
+        // If PRI is none OR pawn isn't in the squad which owns this vehicle
+        if (PRI == none || OwningSquadIndex != PRI.SquadIndex)
+        {
+            DisplayVehicleMessage(30, P); // vehicle owned by another squad
+            return false;
+        }
+    }
+
     // Deny entry if it's an enemy vehicle
     if (bEnemyVehicle)
     {
         DisplayVehicleMessage(1, P); // can't use enemy vehicle
-
         return false;
     }
 
@@ -3877,6 +3893,7 @@ simulated function DisplayDebug(Canvas Canvas, out float YL, out float YPos)
 defaultproperties
 {
     // Miscellaneous
+    OwningSquadIndex=-1
     VehicleMass=3.0
     PointValue=250
     CollisionRadius=175.0
