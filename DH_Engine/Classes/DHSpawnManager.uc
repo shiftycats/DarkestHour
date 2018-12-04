@@ -26,6 +26,7 @@ struct VehiclePool
     var() byte              MaxSpawns;               // how many vehicles can be spawned from this pool
     var() byte              MaxActive;               // how many vehicles from this pool can be active at once
     var() bool              bIgnoreMaxTeamVehicles;  // if true, this vehicle will not add to the team's active vehicle count when spawned
+    var() bool              bIsSquadOwnedVehicle;    // if true, this vehicle will be assigned a squad index and only those who match can enter
 
     var() name              OnActivatedEvent;        // event to trigger when pool is activated (also gets triggered when initially activated)
     var() name              OnDeactivatedEvent;      // event to trigger when pool is deactivated (does NOT get triggered when initially deactivated)
@@ -217,9 +218,9 @@ function ROVehicle SpawnVehicle(DHPlayer PC, vector SpawnLocation, rotator Spawn
         }
     }
 
-    // Make sure the player is in a squad if the vehicle requires them to be
     DHVC = class<DHVehicle>(VehiclePools[PC.VehiclePoolIndex].VehicleClass);
 
+    // Make sure the player is in a squad if the vehicle requires them to be
     if (DHVC != none && DHVC.default.bMustBeInSquadToSpawn && !PC.IsInSquad())
     {
         return none;
@@ -249,6 +250,14 @@ function ROVehicle SpawnVehicle(DHPlayer PC, vector SpawnLocation, rotator Spawn
         return none;
     }
 
+    DHV = DHVehicle(V);
+
+    // Add squad index before we try to drive it!
+    if (DHV != none && VehiclePools[PC.VehiclePoolIndex].bIsSquadOwnedVehicle)
+    {
+        DHV.OwningSquadIndex = PC.GetSquadIndex();
+    }
+
     // If somehow we were unable to enter the vehicle, then destroy it & kill the player, so they aren't stuck in the black room
     if (!V.TryToDrive(PC.Pawn)) // TODO: probably remove this as TryToDrive() checks aren't necessary when spawning into a new vehicle - instead just call V.KDriverEnter(PC.Pawn)
     {
@@ -262,7 +271,6 @@ function ROVehicle SpawnVehicle(DHPlayer PC, vector SpawnLocation, rotator Spawn
     V.SetTeamNum(V.default.VehicleTeam);
     V.ParentFactory = self;
     Vehicles[Vehicles.Length] = V;
-    DHV = DHVehicle(V);
 
     if (DHV != none)
     {
