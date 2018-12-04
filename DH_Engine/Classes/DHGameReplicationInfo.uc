@@ -598,7 +598,7 @@ simulated function bool CanSpawnWithParameters(int SpawnPointIndex, int TeamInde
         RI = GetRole(TeamIndex, RoleIndex);
 
         if (VehicleClass == none ||
-            VehicleClass.default.bMustBeLeaderToSpawn && RI.bRequiresLeaderPosition ||
+            VehicleClass.default.bMustBeLeaderToSpawn && !RI.bRequiresLeaderPosition ||
             VehicleClass.default.bMustBeInSquadToSpawn && SquadIndex == -1 ||
             !CanSpawnVehicle(VehiclePoolIndex, bSkipTimeCheck))
         {
