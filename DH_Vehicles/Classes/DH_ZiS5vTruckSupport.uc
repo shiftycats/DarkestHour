@@ -26,6 +26,7 @@ defaultproperties
     DisintegrationEffectClass=class'ROEffects.ROVehicleObliteratedEmitter'
     DisintegrationEffectLowClass=class'ROEffects.ROVehicleObliteratedEmitter_simple'
     bMustBeInSquadToSpawn=true
+    bMustBeLeaderToSpawn=true
     SpawnOverlay(0)=Material'DH_InterfaceArt_tex.Vehicles.zis5v_logistics'
     FriendlyResetDistance=15000.0  // 250 meters
 }

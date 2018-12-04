@@ -26,5 +26,6 @@ defaultproperties
     DisintegrationEffectClass=class'ROEffects.ROVehicleObliteratedEmitter'
     DisintegrationEffectLowClass=class'ROEffects.ROVehicleObliteratedEmitter_simple'
     bMustBeInSquadToSpawn=true
+    bMustBeLeaderToSpawn=true
     FriendlyResetDistance=15000.0  // 250 meters
 }
