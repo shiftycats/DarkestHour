@@ -26,7 +26,6 @@ struct VehiclePool
     var() byte              MaxSpawns;               // how many vehicles can be spawned from this pool
     var() byte              MaxActive;               // how many vehicles from this pool can be active at once
     var() bool              bIgnoreMaxTeamVehicles;  // if true, this vehicle will not add to the team's active vehicle count when spawned
-    var() bool              bIsSquadOwnedVehicle;    // if true, this vehicle will be assigned a squad index and only those who match can enter
 
     var() name              OnActivatedEvent;        // event to trigger when pool is activated (also gets triggered when initially activated)
     var() name              OnDeactivatedEvent;      // event to trigger when pool is deactivated (does NOT get triggered when initially deactivated)
@@ -253,7 +252,7 @@ function ROVehicle SpawnVehicle(DHPlayer PC, vector SpawnLocation, rotator Spawn
     DHV = DHVehicle(V);
 
     // Add squad index before we try to drive it!
-    if (DHV != none && VehiclePools[PC.VehiclePoolIndex].bIsSquadOwnedVehicle)
+    if (DHV != none && DHV.bIsSquadOwned)
     {
         DHV.OwningSquadIndex = PC.GetSquadIndex();
     }

@@ -50,6 +50,7 @@ var     bool        bClientInitialized;          // clientside flag that replica
 var     TreeMap_string_Object  NotifyParameters; // an object that can hold references to several other objects, which can be used by messages to build a tailored message
 
 // Requirements
+var bool            bIsSquadOwned;               // defaults false, set to true to make it so the vehicle is only enterable for the owning squad
 var byte            OwningSquadIndex;            // defaults to -1, otherwise indicates which squad owns this vehicle
 
 // Driver & driving
