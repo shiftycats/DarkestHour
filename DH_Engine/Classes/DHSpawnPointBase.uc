@@ -166,7 +166,7 @@ function bool PerformSpawn(DHPlayer PC)
         return false;
     }
 
-    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), PC.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex) &&
+    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), PC.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex, PC.PlayerReplicationInfo) &&
         GetSpawnPosition(SpawnLocation, SpawnRotation, PC.VehiclePoolIndex))
     {
         P = G.SpawnPawn(PC, SpawnLocation, SpawnRotation, self);
@@ -277,7 +277,7 @@ simulated function bool IsBlocked()
 }
 
 // Returns true if the given arguments are satisfactory for spawning on this spawn point
-simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, optional bool bSkipTimeCheck)
+simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, PlayerReplicationInfo PRI, optional bool bSkipTimeCheck)
 {
     if (GRI == none || self.TeamIndex != TeamIndex || !bIsActive || IsBlocked())
     {

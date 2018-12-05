@@ -498,7 +498,7 @@ function UpdateVehicles(optional bool bShowAlert)
     local string           S;
     local DHGameReplicationInfo.VehicleReservationError VRE;
 
-    if (GRI == none)
+    if (GRI == none || PRI == none)
     {
         return;
     }
@@ -525,7 +525,7 @@ function UpdateVehicles(optional bool bShowAlert)
         if (VehicleClass != none)
         {
             // If vehicle requires leader role and selected RI is not a leader role
-            if (VehicleClass.default.bMustBeLeaderToSpawn && !RI.bRequiresLeaderPosition)
+            if (VehicleClass.default.bMustBeLeaderToSpawn && !PRI.IsLeaderPosition())
             {
                 bDisabled = true;
             }
@@ -945,6 +945,7 @@ function UpdateButtons()
                                                                  GRI.GetRoleIndexAndTeam(DHRoleInfo(li_Roles.GetObject()), Team),
                                                                  SquadIndex,
                                                                  GetSelectedVehiclePoolIndex(),
+                                                                 PRI,
                                                                  true)))
         {
             bContinueEnabled = true;

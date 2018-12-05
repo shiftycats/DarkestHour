@@ -201,7 +201,7 @@ function ROVehicle SpawnVehicle(DHPlayer PC, vector SpawnLocation, rotator Spawn
 
     SP = GRI.SpawnPoints[PC.SpawnPointIndex];
 
-    if (!GRI.CanSpawnWithParameters(PC.SpawnPointIndex, PC.GetTeamNum(), PC.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex))
+    if (!GRI.CanSpawnWithParameters(PC.SpawnPointIndex, PC.GetTeamNum(), PC.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex, PC.PlayerReplicationInfo))
     {
         return none;
     }

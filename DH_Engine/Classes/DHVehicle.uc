@@ -51,7 +51,7 @@ var     TreeMap_string_Object  NotifyParameters; // an object that can hold refe
 
 // Requirements
 var bool            bIsSquadOwned;               // defaults false, set to true to make it so the vehicle is only enterable for the owning squad
-var byte            OwningSquadIndex;            // defaults to -1, otherwise indicates which squad owns this vehicle
+var int             OwningSquadIndex;            // defaults to -1, otherwise indicates which squad owns this vehicle
 
 // Driver & driving
 var     bool        bNeedToInitializeDriver;     // clientside flag that we need to do some driver set up, once we receive the Driver actor

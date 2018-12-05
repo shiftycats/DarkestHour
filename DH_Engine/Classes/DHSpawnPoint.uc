@@ -217,12 +217,12 @@ simulated function bool CanSpawnMortars()
 }
 
 // Modified to check whether spawn point allows player to use it, depending on role & type of vehicle (if any)
-simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, optional bool bSkipTimeCheck)
+simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, PlayerReplicationInfo PRI, optional bool bSkipTimeCheck)
 {
     local class<ROVehicle> VehicleClass;
     local DHRoleInfo       RI;
 
-    if (!super.CanSpawnWithParameters(GRI, TeamIndex, RoleIndex, SquadIndex, VehiclePoolIndex, bSkipTimeCheck))
+    if (!super.CanSpawnWithParameters(GRI, TeamIndex, RoleIndex, SquadIndex, VehiclePoolIndex, PRI, bSkipTimeCheck))
     {
         return false;
     }
@@ -275,7 +275,7 @@ function bool PerformSpawn(DHPlayer PC)
 
     G = DarkestHourGame(Level.Game);
 
-    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), Pc.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex) &&
+    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), PC.GetRoleIndex(), PC.GetSquadIndex(), PC.VehiclePoolIndex, PC.PlayerReplicationInfo) &&
         GetSpawnPosition(SpawnLocation, SpawnRotation, PC.VehiclePoolIndex) && G != none)
     {
         if (PC.VehiclePoolIndex >= 0)

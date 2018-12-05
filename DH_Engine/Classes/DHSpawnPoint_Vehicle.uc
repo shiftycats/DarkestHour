@@ -85,9 +85,9 @@ function Timer()
 }
 
 // Modified to make sure we have a vehicle & it's on the same team
-simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, optional bool bSkipTimeCheck)
+simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, PlayerReplicationInfo PRI, optional bool bSkipTimeCheck)
 {
-    if (!super.CanSpawnWithParameters(GRI, TeamIndex, RoleIndex, SquadIndex, VehiclePoolIndex, bSkipTimeCheck))
+    if (!super.CanSpawnWithParameters(GRI, TeamIndex, RoleIndex, SquadIndex, VehiclePoolIndex, PRI, bSkipTimeCheck))
     {
         return false;
     }
@@ -181,7 +181,7 @@ function bool PerformSpawn(DHPlayer PC)
     RoleIndex = GRI.GetRoleIndexAndTeam(RoleInfo);
 
     // Check if we can deploy into or near the vehicle
-    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), RoleIndex, PC.GetSquadIndex(), PC.VehiclePoolIndex))
+    if (CanSpawnWithParameters(GRI, PC.GetTeamNum(), RoleIndex, PC.GetSquadIndex(), PC.VehiclePoolIndex, PC.PlayerReplicationInfo))
     {
         // Its engine is off & it will be stationary, so attempt to deploy next to vehicle, at a random exit position
         if (Vehicle.bEngineOff)
