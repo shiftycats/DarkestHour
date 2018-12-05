@@ -877,6 +877,13 @@ function Vehicle FindEntryVehicle(Pawn P)
     return none;
 }
 
+// Function which handles logic to abandon a squad owned vehicle
+function AbandonSquadOwnedVehicle()
+{
+    // TODO: inform SL or the owning squad that a Logi they owned was abadndoned and they no longer own it
+    OwningSquadIndex = -1;
+}
+
 // Modified to prevent entry if player is on fire, or if it's a crew position in an armored vehicle has been locked by its crew
 function bool TryToDrive(Pawn P)
 {
@@ -3474,6 +3481,12 @@ event CheckReset()
         !(ParentFactory.IsA('ROVehicleFactory') && !ROVehicleFactory(ParentFactory).bFactoryActive && ROVehicleFactory(ParentFactory).bDestroyVehicleWhenInactive))
     {
         return;
+    }
+
+    // As this vehicle has been idle, if this is a squad owned vehicle, then open it up
+    if (bIsSquadOwned)
+    {
+        AbandonSquadOwnedVehicle();
     }
 
     if (!bKeyVehicle)
