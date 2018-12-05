@@ -489,7 +489,7 @@ function PopulateVehicles()
 
 function UpdateVehicles(optional bool bShowAlert)
 {
-    local class<ROVehicle> VehicleClass;
+    local class<DHVehicle> VehicleClass;
     local DHRoleInfo       RI;
     local GUIQuestionPage  ConfirmWindow;
     local bool             bDisabled;
@@ -513,7 +513,7 @@ function UpdateVehicles(optional bool bShowAlert)
         }
 
         j = UInteger(li_Vehicles.GetObjectAtIndex(i)).Value;
-        VehicleClass = GRI.VehiclePoolVehicleClasses[j];
+        VehicleClass = class<DHVehicle>(GRI.VehiclePoolVehicleClasses[j]);
         PC = DHPlayer(PlayerOwner());
         VRE = GRI.GetVehicleReservationError(PC, RI, CurrentTeam, j);
 
@@ -521,6 +521,17 @@ function UpdateVehicles(optional bool bShowAlert)
         // display the reason for the error (e.g. team hit the max active limit)
         bDisabled = PC.VehiclePoolIndex != j && (VRE != ERROR_None && VRE != ERROR_TeamMaxActive);
 
+        // Show disabled if requirements to spawn the vehicle aren't met
+        if (VehicleClass != none)
+        {
+            // If vehicle requires leader role and selected RI is not a leader role
+            if (VehicleClass.default.bMustBeLeaderToSpawn && !RI.bRequiresLeaderPosition)
+            {
+                bDisabled = true;
+            }
+        }
+
+        // Set string up
         if (VehicleClass != none)
         {
             S = VehicleClass.default.VehicleNameString;
