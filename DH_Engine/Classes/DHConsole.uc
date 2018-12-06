@@ -145,13 +145,13 @@ function SetAutoCompleteSearchText(string NewSearchText)
     }
 }
 
-simulated function FilterAutoCompleteOptions(string SearchText, out array<AutoCompleteOptionFilterResult> OptionFilterResults)
+simulated function FilterAutoCompleteOptions(string SearchText, out array<AutoCompleteOptionFilterResult> Results)
 {
     local int i, StartIndex;
     local AutoCompleteOptionFilterResult FR;
     local string OptionText;
 
-    OptionFilterResults.Length = 0;
+    Results.Length = 0;
 
     for (i = 0; i < AutoCompleteOptions.Length; ++i)
     {
@@ -167,11 +167,37 @@ simulated function FilterAutoCompleteOptions(string SearchText, out array<AutoCo
         FR.OptionText = OptionText;
         FR.SearchIndex = StartIndex;
 
-        OptionFilterResults[OptionFilterResults.Length] = FR;
+        Results[Results.Length] = FR;
     }
 
-    // TODO: sort the filter results by some critera (eg. people in the squad,
-    // people on our team, alphabetical etc.) *longest* match, *earliest* match
+    SortAutoCompleteOptionFilterResults(Results);
+}
+
+// Comparator function
+function bool AutoCompleteOptionFilterResultCompareFunction(AutoCompleteOptionFilterResult LHS, AutoCompleteOptionFilterResult RHS)
+{
+    return LHS.SearchIndex > RHS.SearchIndex;
+}
+
+// Sort by linear insertion based on the group index!
+function SortAutoCompleteOptionFilterResults(out array<AutoCompleteOptionFilterResult > Results)
+{
+    local int i, j;
+    local AutoCompleteOptionFilterResult Temp;
+
+    for (i = 1; i < Results.Length; ++i)
+    {
+        j = i;
+
+        while (j > 0 && AutoCompleteOptionFilterResultCompareFunction(Results[j - 1], Results[j]))
+        {
+            Temp = Results[j];
+            Results[j] = Results[j - 1];
+            Results[j - 1] = Temp;
+
+            j -= 1;
+        }
+    }
 }
 
 function IncrementAutoCompleteIndex()
@@ -212,20 +238,28 @@ function UpdateAutoCompleteState()
     AutoCompleteStrPos = i;
 
     // Get a substring of all characters after the auto-complete character.
-    S = Mid(S, AutoCompleteStrPos);
+    S = Mid(TypedStr, AutoCompleteStrPos);
 
-    // Find the index of any whitespace character after the auto-complete character.
+    // Find the relative index of any whitespace character after the
+    // auto-complete character.
     WhitespacePos = InStr(S, " ");
 
     if (WhitespacePos == -1)
     {
         // No whitespace character, the remainder of the string is the search string.
         SetAutoCompleteSearchText(Mid(TypedStr, AutoCompleteStrPos + 1));
+        return;
     }
-    else if (WhitespacePos >= TypedStrPos)
+
+    // Set the whitespace index to the original string.
+    WhitespacePos += AutoCompleteStrPos;
+
+    if (WhitespacePos >= TypedStrPos)
     {
+        S = Mid(TypedStr, AutoCompleteStrPos + 1, WhitespacePos - AutoCompleteStrPos - 1);
+
         // Whitespace character is beyond the cursor position.
-        SetAutoCompleteSearchText(Mid(TypedStr, AutoCompleteStrPos + 1, AutoCompleteStrPos + 1 + WhitespacePos));
+        SetAutoCompleteSearchText(S);
     }
     else
     {
@@ -255,7 +289,6 @@ simulated function string GetTypedStr()
         LHS = Left(FR.OptionText, FR.SearchIndex);
         RHS = Mid(FR.OptionText, FR.SearchIndex + Len(AutoCompleteSearchText));
 
-        Log(LHS $ "@" $ AutoCompleteSearchText $ "@" $ RHS @ "?" @ FR.SearchIndex);
         S @= class'GameInfo'.static.MakeColorCode(class'UColor'.default.Gray) $ LHS $
         class'GameInfo'.static.MakeColorCode(class'UColor'.default.White) $ Mid(FR.OptionText, FR.SearchIndex, Len(AutoCompleteSearchText)) $
         class'GameInfo'.static.MakeColorcode(class'UColor'.default.Gray) $ RHS $
