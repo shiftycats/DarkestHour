@@ -5605,7 +5605,7 @@ function DHDrawTypingPrompt(Canvas C)
 
     SayTypeText = class'GameInfo'.static.MakeColorCode(SayTypeColor) $ SayTypeText $ class'GameInfo'.static.MakeColorCode(WhiteColor);
 
-    C.DrawTextClipped(SayTypeText @ "(>" @ Left(Console.TypedStr, Console.TypedStrPos) $ Chr(4) $ Eval(Console.TypedStrPos < Len(Console.TypedStr), Mid(Console.TypedStr, Console.TypedStrPos), "_"), true);
+    C.DrawTextClipped(SayTypeText @ "(>" @ Console.GetTypedStr(), true);
 }
 
 defaultproperties

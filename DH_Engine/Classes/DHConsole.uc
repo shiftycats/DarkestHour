@@ -18,10 +18,252 @@ var string                  SayType;
 // Since "say" messages are being treated differently now, we want to keep a
 // separate history so we don't accidentally broadcast console messages (like
 // admin login credentials etc.).
+const SAY_HISTORY_MAX = 16;
+
 var array<string>           SayHistory;
 var int                     SayHistoryCur;
 
-const SAY_HISTORY_MAX = 16;
+// Autocomplete
+const AUTOCOMPLETE_CHARACTER = "@";
+
+struct AutoCompleteOptionFilterResult
+{
+    var int Index;          // The index into the auto-complete option.
+    var PlayerReplicationInfo Option;
+    var string OptionText;  // The option text.
+    var int SearchIndex;    // The index into OptionText where the search text was found.
+};
+
+var int                                     AutoCompleteStrPos;
+var string                                  AutoCompleteSearchText;         // The auto-complete current search text
+var int                                     AutoCompleteIndex;              // The current index into the
+var array<PlayerReplicationInfo>            AutoCompleteOptions;            // The raw, unfiltered list of possible auto-complete options.
+var array<AutoCompleteOptionFilterResult>   FilteredAutoCompleteOptions;    // The filtered list of auto-complete options.
+
+
+
+// Rebuilds the auto-complete options.
+simulated function BuildAutoCompleteOptions()
+{
+    local Controller C;
+
+    AutoCompleteOptions.Length = 0;
+
+    for (C = ViewportOwner.Actor.Level.ControllerList; C != none; C = C.nextController)
+    {
+        if (C != none && C.PlayerReplicationInfo != none)
+        {
+            AutoCompleteOptions[AutoCompleteOptions.Length] = C.PlayerReplicationInfo;
+
+            // DEBUG
+            Log(GetAutoCompleteOptionText(AutoCompleteOptions.Length - 1));
+        }
+    }
+}
+
+// Gets the associated string for the specified auto-complete option.
+simulated function string GetAutoCompleteOptionText(int Index)
+{
+    if (Index < 0 || Index >= AutoCompleteOptions.Length || AutoCompleteOptions[Index] == none)
+    {
+        return "";
+    }
+
+    return AutoCompleteOptions[Index].PlayerName;
+}
+
+function SetAutoCompleteSearchText(string NewSearchText)
+{
+    local int OldAutoCompleteIndex;
+    local int OldAutoCompleteOptionIndex;
+    local int i;
+    local bool bDidFindOldOption;
+
+    if (AutoCompleteSearchText == NewSearchText)
+    {
+        // New search text is the same as the old search text, do nothing.
+        return;
+    }
+
+    // Assign the new search text.
+    AutoCompleteSearchText = NewSearchText;
+
+    OldAutoCompleteOptionIndex = -1;
+
+    // Save auto-complete index and filtered options.
+    OldAutoCompleteIndex = AutoCompleteIndex;
+
+    if (OldAutoCompleteIndex != -1)
+    {
+        OldAutoCompleteOptionIndex = FilteredAutoCompleteOptions[OldAutoCompleteIndex].Index;
+    }
+
+    // Filter auto-complete options with new search text.
+    FilterAutoCompleteOptions(NewSearchText, FilteredAutoCompleteOptions);
+
+    // If we already had an option selected, do a search to see if that option
+    // exists in the new result set. If it does, update the auto-complete option
+    // index.
+    if (OldAutoCompleteOptionIndex != -1)
+    {
+        for (i = 0; i < FilteredAutoCompleteOptions.Length; ++i)
+        {
+            if (FilteredAutoCompleteOptions[i].Index == OldAutoCompleteOptionIndex)
+            {
+                bDidFindOldOption = true;
+                AutoCompleteIndex = i;
+                break;
+            }
+        }
+
+        if (!bDidFindOldOption)
+        {
+            // We did not find our previously selected option in the new
+            // filter results.
+            if (FilteredAutoCompleteOptions.Length > 0)
+            {
+                // Set the auto complete index to the first option.
+                AutoCompleteIndex = 0;
+            }
+            else
+            {
+                // Clear the auto-complete index.
+                AutoCompleteIndex = -1;
+            }
+        }
+    }
+    else
+    {
+        if (FilteredAutoCompleteOptions.Length > 0)
+        {
+            AutoCompleteIndex = 0;
+        }
+        else
+        {
+            AutoCompleteIndex = -1;
+        }
+    }
+}
+
+simulated function FilterAutoCompleteOptions(string SearchText, out array<AutoCompleteOptionFilterResult> OptionFilterResults)
+{
+    local int i, StartIndex;
+    local AutoCompleteOptionFilterResult FR;
+    local string OptionText;
+
+    OptionFilterResults.Length = 0;
+
+    for (i = 0; i < AutoCompleteOptions.Length; ++i)
+    {
+        OptionText = GetAutoCompleteOptionText(i);
+        StartIndex = InStr(Caps(OptionText), Caps(SearchText));
+
+        if (StartIndex == -1)
+        {
+            continue;
+        }
+
+        FR.Index = i;
+        FR.OptionText = OptionText;
+        FR.SearchIndex = StartIndex;
+
+        OptionFilterResults[OptionFilterResults.Length] = FR;
+    }
+
+    // TODO: sort the filter results by some critera (eg. people in the squad,
+    // people on our team, alphabetical etc.) *longest* match, *earliest* match
+}
+
+function IncrementAutoCompleteIndex()
+{
+    if (AutoCompleteIndex == -1)
+    {
+        return;
+    }
+
+    AutoCompleteIndex = (AutoCompleteIndex + 1) % FilteredAutoCompleteOptions.Length;
+}
+
+// Re-evaluates the auto-complete state.
+function UpdateAutoCompleteState()
+{
+    local string S;
+    local int i;
+    local int WhitespacePos;
+
+    // TODO: from the typedstrpos, travel backwards and see if we can find an
+    // unbroken chain of non-whitespace characters punctuated with the @ symbol
+
+    // Get the string of all characters up until the current cursor.
+    S = Mid(TypedStr, 0, TypedStrPos);
+
+    // Find the last occurrance of the auto-complete character.
+    i = class'UString'.static.FindLastOf(S, AUTOCOMPLETE_CHARACTER);
+
+    if (i == -1)
+    {
+        // No auto-complete character to be found.
+        AutoCompleteStrPos = -1;
+        AutoCompleteIndex = -1;
+        return;
+    }
+
+    // Set the auto-complete cursor position.
+    AutoCompleteStrPos = i;
+
+    // Get a substring of all characters after the auto-complete character.
+    S = Mid(S, AutoCompleteStrPos);
+
+    // Find the index of any whitespace character after the auto-complete character.
+    WhitespacePos = InStr(S, " ");
+
+    if (WhitespacePos == -1)
+    {
+        // No whitespace character, the remainder of the string is the search string.
+        SetAutoCompleteSearchText(Mid(TypedStr, AutoCompleteStrPos + 1));
+    }
+    else if (WhitespacePos >= TypedStrPos)
+    {
+        // Whitespace character is beyond the cursor position.
+        SetAutoCompleteSearchText(Mid(TypedStr, AutoCompleteStrPos + 1, AutoCompleteStrPos + 1 + WhitespacePos));
+    }
+    else
+    {
+        // Whitespace character breaks up the remainder of the string, no auto-complete.
+        AutoCompleteStrPos = -1;
+        AutoCompleteIndex = -1;
+        return;
+    }
+}
+
+// Gets the typed string to be displayed while typing.
+// TODO: have this simply be updated once instead of re-fetched a million times a second
+simulated function string GetTypedStr()
+{
+    local string LHS, RHS;
+    local AutoCompleteOptionFilterResult FR;
+    local string S;
+
+    // TODO: we need to go and *replace* the auto-complete portion with the
+    // "LHS<search>RHS" bit *while* retaining the cursor.
+    // the cursor is actually the Chr(4) bit I think.
+    S = Left(TypedStr, TypedStrPos) $ Chr(4) $ Eval(TypedStrPos < Len(TypedStr), Mid(TypedStr, TypedStrPos), "_");
+
+    if (AutoCompleteStrPos != -1 && AutoCompleteIndex != -1)
+    {
+        FR = FilteredAutoCompleteOptions[AutoCompleteIndex];
+        LHS = Left(FR.OptionText, FR.SearchIndex);
+        RHS = Mid(FR.OptionText, FR.SearchIndex + Len(AutoCompleteSearchText));
+
+        Log(LHS $ "@" $ AutoCompleteSearchText $ "@" $ RHS @ "?" @ FR.SearchIndex);
+        S @= class'GameInfo'.static.MakeColorCode(class'UColor'.default.Gray) $ LHS $
+        class'GameInfo'.static.MakeColorCode(class'UColor'.default.White) $ Mid(FR.OptionText, FR.SearchIndex, Len(AutoCompleteSearchText)) $
+        class'GameInfo'.static.MakeColorcode(class'UColor'.default.Gray) $ RHS $
+        class'GameInfo'.static.MakeColorCode(class'UColor'.default.White);
+    }
+
+    return S;
+}
 
 // Modified to fix the reconnect console command, a delay is need, but so is a bit in ConnectFailure, as it does techically fail still
 simulated event Tick(float Delta)
@@ -543,6 +785,41 @@ static function class<DHLocalMessage> GetSayTypeMessageClass(string SayType)
 
 state Typing
 {
+    function bool KeyType(EInputKey Key, optional string Unicode)
+    {
+        if (bIgnoreKeys)
+        {
+            return true;
+        }
+
+        if (Key >= 0x20)
+        {
+            if (Unicode != "")
+            {
+                TypedStr = Left(TypedStr, TypedStrPos) $ Unicode $ Right(TypedStr, Len(TypedStr) - TypedStrPos);
+            }
+            else
+            {
+                TypedStr = Left(TypedStr, TypedStrPos) $ Chr(Key) $ Right(TypedStr, Len(TypedStr) - TypedStrPos);
+            }
+
+            if (Unicode == AUTOCOMPLETE_CHARACTER)
+            {
+                BuildAutoCompleteOptions();
+            }
+
+            ++TypedStrPos;
+
+            UpdateAutoCompleteState();
+
+            // TODO: if we ever *erase* the auto-complete character we need to reflect that somehow
+
+            return true;
+        }
+
+        return false;
+    }
+
     function bool KeyEvent(EInputKey Key, EInputAction Action, FLOAT Delta)
     {
         local string Temp;
@@ -636,10 +913,13 @@ state Typing
         }
         else if (Key == IK_Backspace)
         {
+            // TODO: check if we are still auto-completing anything
+
             if (TypedStrPos > 0)
             {
                 TypedStr = Left(TypedStr, TypedStrPos - 1) $ Right(TypedStr, Len(TypedStr) - TypedStrPos);
                 --TypedStrPos;
+                UpdateAutoCompleteState();
             }
 
             return true;
@@ -649,6 +929,7 @@ state Typing
             if (TypedStrPos < Len(TypedStr))
             {
                 TypedStr = Left(TypedStr, TypedStrPos) $ Right(TypedStr, Len(TypedStr) - TypedStrPos - 1);
+                UpdateAutoCompleteState();
             }
 
             return true;
@@ -675,7 +956,14 @@ state Typing
         }
         else if (Key == IK_Tab)
         {
-            IncrementSayType();
+            if (AutoCompleteStrPos != -1)
+            {
+                IncrementAutoCompleteIndex();
+            }
+            else
+            {
+                IncrementSayType();
+            }
         }
 
         return true;
@@ -692,5 +980,8 @@ defaultproperties
     SayTypes(2)="SquadSay"
     SayTypes(3)="CommandSay"
     SayTypes(4)="VehicleSay"
+
+    AutoCompleteIndex=-1
+    AutoCompleteStrPos=-1
 }
 
