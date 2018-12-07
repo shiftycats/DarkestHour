@@ -54,9 +54,6 @@ simulated function BuildAutoCompleteOptions()
         if (C != none && C.PlayerReplicationInfo != none)
         {
             AutoCompleteOptions[AutoCompleteOptions.Length] = C.PlayerReplicationInfo;
-
-            // DEBUG
-            Log(GetAutoCompleteOptionText(AutoCompleteOptions.Length - 1));
         }
     }
 }
@@ -79,11 +76,13 @@ function SetAutoCompleteSearchText(string NewSearchText)
     local int i;
     local bool bDidFindOldOption;
 
+    /*
     if (AutoCompleteSearchText == NewSearchText)
     {
-        // New search text is the same as the old search text, do nothing.
+        // TODO:
         return;
     }
+    */
 
     // Assign the new search text.
     AutoCompleteSearchText = NewSearchText;
@@ -100,6 +99,13 @@ function SetAutoCompleteSearchText(string NewSearchText)
 
     // Filter auto-complete options with new search text.
     FilterAutoCompleteOptions(NewSearchText, FilteredAutoCompleteOptions);
+
+    Log("=====================");
+
+    for (i = 0; i < FilteredAutoCompleteOptions.Length; ++i)
+    {
+        Log(FilteredAutoCompleteOptions[i].OptionText);
+    }
 
     // If we already had an option selected, do a search to see if that option
     // exists in the new result set. If it does, update the auto-complete option
@@ -217,6 +223,8 @@ function UpdateAutoCompleteState()
     local int i;
     local int WhitespacePos;
 
+    Log("UpdateAutoCompleteState");
+
     // TODO: from the typedstrpos, travel backwards and see if we can find an
     // unbroken chain of non-whitespace characters punctuated with the @ symbol
 
@@ -225,6 +233,8 @@ function UpdateAutoCompleteState()
 
     // Find the last occurrance of the auto-complete character.
     i = class'UString'.static.FindLastOf(S, AUTOCOMPLETE_CHARACTER);
+
+    Log("S" @ S);
 
     if (i == -1)
     {
@@ -237,6 +247,8 @@ function UpdateAutoCompleteState()
     // Set the auto-complete cursor position.
     AutoCompleteStrPos = i;
 
+    Log("AutoCompleteStrPos" @ AutoCompleteStrPos);
+
     // Get a substring of all characters after the auto-complete character.
     S = Mid(TypedStr, AutoCompleteStrPos);
 
@@ -247,7 +259,11 @@ function UpdateAutoCompleteState()
     if (WhitespacePos == -1)
     {
         // No whitespace character, the remainder of the string is the search string.
-        SetAutoCompleteSearchText(Mid(TypedStr, AutoCompleteStrPos + 1));
+        S = Mid(TypedStr, AutoCompleteStrPos + 1);
+
+        Log("SearchText" @ S);
+
+        SetAutoCompleteSearchText(S);
         return;
     }
 
@@ -257,6 +273,8 @@ function UpdateAutoCompleteState()
     if (WhitespacePos >= TypedStrPos)
     {
         S = Mid(TypedStr, AutoCompleteStrPos + 1, WhitespacePos - AutoCompleteStrPos - 1);
+
+        Log("SearchText" @ S);
 
         // Whitespace character is beyond the cursor position.
         SetAutoCompleteSearchText(S);
@@ -283,13 +301,14 @@ simulated function string GetTypedStr()
     // the cursor is actually the Chr(4) bit I think.
     S = Left(TypedStr, TypedStrPos) $ Chr(4) $ Eval(TypedStrPos < Len(TypedStr), Mid(TypedStr, TypedStrPos), "_");
 
+    // If there is an auto-complete character in use,
     if (AutoCompleteStrPos != -1 && AutoCompleteIndex != -1)
     {
         FR = FilteredAutoCompleteOptions[AutoCompleteIndex];
         LHS = Left(FR.OptionText, FR.SearchIndex);
         RHS = Mid(FR.OptionText, FR.SearchIndex + Len(AutoCompleteSearchText));
 
-        S @= class'GameInfo'.static.MakeColorCode(class'UColor'.default.Gray) $ LHS $
+        S $= class'GameInfo'.static.MakeColorCode(class'UColor'.default.Gray) $ LHS $
         class'GameInfo'.static.MakeColorCode(class'UColor'.default.White) $ Mid(FR.OptionText, FR.SearchIndex, Len(AutoCompleteSearchText)) $
         class'GameInfo'.static.MakeColorcode(class'UColor'.default.Gray) $ RHS $
         class'GameInfo'.static.MakeColorCode(class'UColor'.default.White);
@@ -816,6 +835,29 @@ static function class<DHLocalMessage> GetSayTypeMessageClass(string SayType)
     return none;
 }
 
+function ConfirmAutoComplete()
+{
+    local string S;
+
+    if (AutoCompleteStrPos != -1 && AutoCompleteIndex != -1)
+    {
+        S = FilteredAutoCompleteOptions[AutoCompleteIndex].OptionText;
+
+        // a   @ b a s
+        // a   @ B a s n e t t
+        // 0 1 2 3 4 5 6 7 8 9 A B C
+        // TODO: devise some sort of pre-formatted string token, treat entire
+        // token as a single character. Need to use non-printable characters
+        // to indicate the start/end of the tokens (do a little research)
+        TypedStr = Left(TypedStr, AutoCompleteStrPos) $ S $ Mid(TypedStr, AutoCompleteStrPos + Len(AutoCompleteSearchText) + 1);
+        TypedStrPos = AutoCompleteStrPos + Len(S) + 1;
+
+        // Reset auto-complete.
+        AutoCompleteStrPos = -1;
+        AutoCompleteIndex = -1;
+    }
+}
+
 state Typing
 {
     function bool KeyType(EInputKey Key, optional string Unicode)
@@ -868,6 +910,7 @@ state Typing
             {
                 TypedStr = "";
                 TypedStrPos = 0;
+                UpdateAutoCompleteState();
                 HistoryCur = HistoryTop;
                 SayHistoryCur = -1;
             }
@@ -886,6 +929,11 @@ state Typing
         {
             if (TypedStr != "")
             {
+                if (AutoCompleteStrPos != -1 && AutoCompleteIndex != -1)
+                {
+                    ConfirmAutoComplete();
+                    return true;
+                }
                 History[HistoryTop] = SayType @ TypedStr;
                 HistoryTop = (HistoryTop + 1) % arraycount(History);
 
@@ -911,6 +959,7 @@ state Typing
                 Temp = SayType @ TypedStr;
                 TypedStr = "";
                 TypedStrPos = 0;
+                UpdateAutoCompleteState();
 
                 if (!ConsoleCommand(Temp))
                 {
@@ -926,14 +975,26 @@ state Typing
         }
         else if (Key == IK_Up)
         {
+            if (SayHistory.Length == 0)
+            {
+                return true;
+            }
+
             SayHistoryCur = (SayHistoryCur + 1) % SayHistory.Length;
             TypedStr = SayHistory[SayHistoryCur];
             TypedStrPos = Len(TypedStr);
+            UpdateAutoCompleteState();
+
             return true;
         }
 
         else if (Key == IK_Down)
         {
+            if (SayHistory.Length == 0)
+            {
+                return true;
+            }
+
             if (SayHistoryCur == -1)
             {
                 SayHistoryCur = SayHistory.Length;
@@ -942,6 +1003,7 @@ state Typing
             SayHistoryCur = (SayHistoryCur - 1) % SayHistory.Length;
             TypedStr = Eval(SayHistoryCur == -1, "", SayHistory[SayHistoryCur]);
             TypedStrPos = Len(TypedStr);
+            UpdateAutoCompleteState();
             return true;
         }
         else if (Key == IK_Backspace)
@@ -970,21 +1032,25 @@ state Typing
         else if (Key == IK_Left)
         {
             TypedStrPos = Max(0, TypedStrPos - 1);
+            UpdateAutoCompleteState();
             return true;
         }
         else if (Key == IK_Right)
         {
             TypedStrPos = Min(Len(TypedStr), TypedStrPos + 1);
+            UpdateAutoCompleteState();
             return true;
         }
         else if (Key == IK_Home)
         {
             TypedStrPos = 0;
+            UpdateAutoCompleteState();
             return true;
         }
         else if (Key == IK_End)
         {
             TypedStrPos = Len(TypedStr);
+            UpdateAutoCompleteState();
             return true;
         }
         else if (Key == IK_Tab)
