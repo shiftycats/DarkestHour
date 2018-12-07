@@ -1,9 +1,9 @@
 //==============================================================================
 // Darklight Games (c) 2008-2018
 //==============================================================================
-// We will use insertion sort, since it doesn't require any recursive calls.
-// Recursive calls kill performance because UnrealScript dynamic arrays are not
-// passed by reference.
+// We will use a linear insertion sort, since it doesn't require any recursive
+// calls. Recursive calls kill performance because UnrealScript dynamic arrays
+// are not pass-by-reference.
 //
 // TODO: When we get proper template capabilities, we can convert all of these
 // to perform a quicksort on ArrayList<T> instead of array<T>.
