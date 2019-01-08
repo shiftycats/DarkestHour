@@ -36,8 +36,6 @@ var     class<DHObstacleManager>    ObstacleManagerClass;
 
 var()   config bool                 bAllowAllChat;                          // optional bool to disable public text chat on the server
 
-var()   config float                AccuracyModifier;                       // 1.0 for normal weapon accuracy, raise for worse accuracy
-
 var()   config int                  ChangeTeamInterval;                     // Server setting determines how long before a player can change teams again after doing so
                                                                             // Also currently is the length of time for which a player can change teams for free at the beginning of a round
                                                                             // Note: if bPlayersBalanceTeams is false, players will still be able to change teams
@@ -53,8 +51,8 @@ var     byte                        bDidSendEnemyTeamWeakMessage[2];        // F
 
 const SERVERTICKRATE_UPDATETIME =       15.0;   // The duration we use to calculate the average tick the server is running
 const MAXINFLATED_INTERVALTIME =        100.0;  // The max value to add to reinforcement time for inflation for poor performance
-const ADDED_RESPAWN_TIME_PUNISHMENT =   30.0;   // How much to increase ConsolidatedRespawnTimeAdded by when server receives a strike
-const PERFORMANCE_INFRACTION_MARGIN =   5;      // How many infractions allowed before the server receives a strike
+const ADDED_RESPAWN_TIME_PUNISHMENT =   20.0;   // How much to increase ConsolidatedRespawnTimeAdded by when server receives a strike
+const PERFORMANCE_INFRACTION_MARGIN =   8;      // How many infractions allowed before the server receives a strike
 const PERFORMANCE_STRIKE_MARGIN =       2;      // How many strikes allowed before a MidGameVote is forced
 const PERFORMANCE_MERIT_MARGIN =        20;     // How many merits before it begins removing infractions
 const SPAWN_KILL_RESPAWN_TIME =         2;
@@ -622,10 +620,6 @@ function HandlePerformanceInfraction()
 
             PoorPerformanceInfractionCount = 0; // Reset infractions
         }
-    }
-    else
-    {
-        Level.Game.Broadcast(self, "Server is performing poorly, respawn times increased temporarily to improve performance!", 'Say');
     }
 
     // Handle Reinforcement Intervals
@@ -2722,6 +2716,11 @@ state RoundInPlay
             }
         }
 
+        if (GRI.GameType.default.bAreObjectiveSpawnsEnabled)
+        {
+            UpdateObjectiveSpawns();
+        }
+
         if (LevelInfo.bUseSpawnAreas)
         {
             CheckSpawnAreas();
@@ -3617,6 +3616,81 @@ function bool DHRestartPlayer(Controller C, optional bool bHandleReinforcements)
     return true;
 }
 
+// Function which creates objective spawns where they are valid
+function UpdateObjectiveSpawns()
+{
+    local int i, Team;
+    local array<int> ObjIndices;
+    local DHObjective Obj;
+    local DHSpawnPoint_Objective SpawnPoint;
+
+    if (GRI == none)
+    {
+        return;
+    }
+
+    // For each team.
+    for (Team = 0; Team < 2; ++Team)
+    {
+        // Clear the objective index array for the team.
+        ObjIndices.Length = 0;
+
+        // Get the objective indices for valid objective spawns.
+        GRI.GetIndicesForObjectiveSpawns(Team, ObjIndices);
+
+        // Loop all objectives
+        for (i = 0; i < arraycount(GRI.DHObjectives); ++i)
+        {
+            Obj = GRI.DHObjectives[i];
+
+            if (Obj == none)
+            {
+                continue;
+            }
+
+            if (class'UArray'.static.IIndexOf(ObjIndices, i) == -1)
+            {
+                // If the objective has a spawn point reference and is neutral
+                // or controlled by current team, destroy the spawn point.
+                if (Obj.SpawnPoint != none && (int(Obj.ObjState) == Team || Obj.IsNeutral()))
+                {
+                    Obj.SpawnPoint.Destroy();
+                }
+            }
+            else
+            {
+                // The objective should have a spawn point!
+                // Check if an objective already has a spawn point.
+                if (Obj.SpawnPoint != none)
+                {
+                    // If the team is not the same, delete it.
+                    if (Obj.SpawnPoint.GetTeamIndex() != Team)
+                    {
+                        Obj.SpawnPoint.Destroy();
+                    }
+                    else
+                    {
+                        // No changes to this spawn point.
+                        continue;
+                    }
+                }
+
+                SpawnPoint = Spawn(class'DH_Engine.DHSpawnPoint_Objective', self,, Obj.Location);
+
+                // Setup the properties of the new spawn point.
+                SpawnPoint.SetTeamIndex(Team);
+                SpawnPoint.Objective = Obj;
+                SpawnPoint.InfantryLocationHintTag = Obj.SpawnPointHintTags[Team];
+                SpawnPoint.BuildLocationHintsArrays();
+                SpawnPoint.SetIsActive(true);
+
+                // Assign the SpawnPoint reference in the objective
+                Obj.SpawnPoint = SpawnPoint;
+            }
+        }
+    }
+}
+
 // Functionally identical to ROTeamGame.ChangeTeam except we reset additional parameters in DHPlayer
 function bool ChangeTeam(Controller Other, int Num, bool bNewTeam)
 {
@@ -3864,18 +3938,10 @@ function ChangeWeapons(Controller aPlayer, int Primary, int Secondary, int Grena
 
 function UpdateMunitionPercentages()
 {
-    const MIN_MUNITION_PERCENTAGE = 10.0;
-
     local int i;
-    local float p;
+    local float MunitionDifference, ElapsedRatio;
 
     if (GRI == none)
-    {
-        return;
-    }
-
-    // Don't update munitions if the gamemode does not specify to TODO: perhaps this should be up to levels, but for now it should be gamemode so we have control in code
-    if (!GRI.GameType.default.bMunitionsDrainOverTime)
     {
         return;
     }
@@ -3883,11 +3949,21 @@ function UpdateMunitionPercentages()
     // Calculate and set the Munition Percentages for each team
     for (i = 0; i < 2; ++i)
     {
-        // Get the munition percentage by this formula:    StartingMunitions - (ElaspedMinutes * LossRate)
-        p = DHLevelInfo.BaseMunitionPercentages[i] - ((GRI.ElapsedTime - GRI.RoundStartTime) / 60.0 * DHLevelInfo.MunitionLossPerMinute[i]);
+        ElapsedRatio = FClamp(((GRI.ElapsedTime - GRI.RoundStartTime) / 60.0) / 60.0, 0.0, 1.0);
 
-        // Set the GRI value clamped to the munition percentage
-        GRI.TeamMunitionPercentages[i] = FClamp(p, MIN_MUNITION_PERCENTAGE, 100.0);
+        // If Base > Final (aka ammo goes down)
+        if (DHLevelInfo.BaseMunitionPercentages[i] > DHLevelInfo.FinalMunitionPercentages[i])
+        {
+            MunitionDifference = DHLevelInfo.BaseMunitionPercentages[i] - DHLevelInfo.FinalMunitionPercentages[i];
+
+            GRI.TeamMunitionPercentages[i] = DHLevelInfo.BaseMunitionPercentages[i] - (MunitionDifference * ElapsedRatio);
+        }
+        else // Ammo is going up over time
+        {
+            MunitionDifference = DHLevelInfo.FinalMunitionPercentages[i] - DHLevelInfo.BaseMunitionPercentages[i];
+
+            GRI.TeamMunitionPercentages[i] = DHLevelInfo.BaseMunitionPercentages[i] + (MunitionDifference * ElapsedRatio);
+        }
     }
 }
 
@@ -4917,6 +4993,18 @@ function BroadcastSquad(Controller Sender, coerce string Msg, optional name Type
     }
 }
 
+function BroadcastCommand(Controller Sender, coerce string Msg, optional name Type)
+{
+    local DHBroadcastHandler BH;
+
+    BH = DHBroadcastHandler(BroadcastHandler);
+
+    if (BH != none)
+    {
+        BH.BroadcastCommand(Sender, Msg, Type);
+    }
+}
+
 function Pawn SpawnPawn(DHPlayer C, vector SpawnLocation, rotator SpawnRotation, DHSpawnPointBase SP)
 {
     if (C == none)
@@ -5219,8 +5307,6 @@ defaultproperties
     WinLimit=1 // 1 round per map, server admins are able to customize win/rounds to the level in webadmin
     RoundLimit=1
 
-    AccuracyModifier=1.0
-
     MaxTeamDifference=2
     bAutoBalanceTeamsOnDeath=true // if teams become imbalanced it'll force the next player to die to the weaker team
     MaxIdleTime=300
@@ -5311,8 +5397,8 @@ defaultproperties
 
     Begin Object Class=UVersion Name=VersionObject
         Major=8
-        Minor=3
-        Patch=5
+        Minor=4
+        Patch=2
         Prerelease=""
     End Object
     Version=VersionObject
