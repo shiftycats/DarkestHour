@@ -57,12 +57,15 @@ var localized string SquadMergedDestinationMessage;
 var localized string SquadMergeRequestDeniedMessage;
 var localized string SquadMergeRequestDeniedGenericMessage;
 var localized string SquadMergeFailedMessage;
+var localized string SquadClaimedSquadOwnedVehicleMessage;
+var localized string SquadAbandonedSquadOwnedVehicleMessage;
 
 static function string GetString(optional int S, optional PlayerReplicationInfo RelatedPRI_1, optional PlayerReplicationInfo RelatedPRI_2, optional Object OptionalObject)
 {
     local int ExtraValue;
     local DHConstruction C;
     local DHSquadReplicationInfo SRI;
+    local DHVehicle Veh;
     local string SquadName;
 
     class'UInteger'.static.ToShorts(S, S, ExtraValue);
@@ -190,6 +193,18 @@ static function string GetString(optional int S, optional PlayerReplicationInfo 
             return default.SquadMergeFailedMessage;
         case 78:
             return default.RallyPointInUncontrolledObjective;
+        case 79:
+            Veh = DHVehicle(OptionalObject);
+            if (Veh != none)
+            {
+                return Repl(default.SquadClaimedSquadOwnedVehicleMessage, "{0}", Veh.VehicleNameString);
+            }
+        case 80:
+            Veh = DHVehicle(OptionalObject);
+            if (Veh != none)
+            {
+                return Repl(default.SquadAbandonedSquadOwnedVehicleMessage, "{0}", Veh.VehicleNameString);
+            }
         default:
             break;
     }
@@ -251,6 +266,8 @@ defaultproperties
     SquadMergeRequestDeniedMessage="Your squad merge request was denied by {0} squad."
     SquadMergeRequestDeniedGenericMessage="Your squad merge was denied."
     SquadMergeFailedMessage="The squad merge failed,"
+    SquadClaimedSquadOwnedVehicleMessage="Your squad claimed a Squad-owned {0}."
+    SquadAbandonedSquadOwnedVehicleMessage="Your squad abandoned a squad-owned {0}."
 
     bIsSpecial=false
     bIsConsoleMessage=true

@@ -880,8 +880,61 @@ function Vehicle FindEntryVehicle(Pawn P)
 // Function which handles logic to abandon a squad owned vehicle
 function AbandonSquadOwnedVehicle()
 {
-    // TODO: inform SL or the owning squad that a Logi they owned was abadndoned and they no longer own it
+    OwningSquadIndexChanged(OwningSquadIndex); // Squad Index who abandoned this vehicle
     OwningSquadIndex = -1;
+}
+
+// Function which will try to claim the squad vehicle for passed controller (returns true is OwningSquadIndex is changed)
+function bool TryToSquadClaimForPlayer(DHPlayer PC)
+{
+    if (PC == none)
+    {
+        return false;
+    }
+
+    if (!PC.IsInSquad())
+    {
+        return false;
+    }
+
+    if (bIsSquadOwned && OwningSquadIndex == -1)
+    {
+        OwningSquadIndex = PC.GetSquadIndex();
+        return true;
+    }
+}
+
+function OwningSquadIndexChanged(int SquadIndexWhoAbandoned)
+{
+    local DHSquadReplicationInfo SRI;
+    local DHPlayer PC;
+
+    SRI = DarkestHourGame(Level.Game).SquadReplicationInfo;
+
+    if (SRI == none)
+    {
+        return;
+    }
+
+    // Was abandoned
+    if (SquadIndexWhoAbandoned != -1)
+    {
+        PC = DHPlayer(SRI.GetSquadLeader(GetTeamNum(), SquadIndexWhoAbandoned).Owner);
+
+        if (PC != none)
+        {
+            PC.ReceiveLocalizedMessage(class'DHSquadMessage', 80,,, self);  // "Your squad abandoned a squad-owned {0}."
+        }
+    }
+    else // Claimed
+    {
+        PC = DHPlayer(SRI.GetSquadLeader(GetTeamNum(), OwningSquadIndex).Owner);
+
+        if (PC != none)
+        {
+            PC.ReceiveLocalizedMessage(class'DHSquadMessage', 79,,, self);  // "Your squad claimed a Squad-owned {0}."
+        }
+    }
 }
 
 // Modified to prevent entry if player is on fire, or if it's a crew position in an armored vehicle has been locked by its crew
@@ -1026,6 +1079,16 @@ function KDriverEnter(Pawn P)
     if (bEnterringUnlocks && bTeamLocked) // MOVED here from TryToDrive()
     {
         bTeamLocked = false;
+    }
+
+    // If Squad Owned Vehicle && No Squad Index is set, then try to claim
+    if (bIsSquadOwned && OwningSquadIndex == -1)
+    {
+        // If claim is succesful, then inform the SL of the new squad
+        if (TryToSquadClaimForPlayer(DHPlayer(C)))
+        {
+            OwningSquadIndexChanged(-1); // Claimed
+        }
     }
 
     // Make the player our 'Driver'
