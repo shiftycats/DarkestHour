@@ -5,17 +5,6 @@
 
 class DH_EnfieldNo4Weapon extends DHBoltActionWeapon;
 
-// Modified to add hint about weapon's two clip loading capacity
-simulated function BringUp(optional Weapon PrevWeapon)
-{
-    super.BringUp(PrevWeapon);
-
-    if (Instigator != none && DHPlayer(Instigator.Controller) != none)
-    {
-        DHPlayer(Instigator.Controller).QueueHint(21, true);
-    }
-}
-
 defaultproperties
 {
     ItemName="Lee Enfield No.4 Rifle"
