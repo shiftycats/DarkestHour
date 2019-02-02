@@ -62,6 +62,17 @@ function InternalOnOpen()
 
 function InternalOnClose(optional bool bCancelled)
 {
+    local DHPlayer PC;
+
+    // Since this is going to show overtop of literally everything, we only
+    // want to show the HUD hit about activating the map after the map is closed.
+    PC = DHPlayer(PlayerOwner());
+
+    if (PC != none && PC.DHHintManager != none)
+    {
+        PC.DHHintManager.QueueHint(53);
+    }
+
     Controller.bActive = true;
 }
 
