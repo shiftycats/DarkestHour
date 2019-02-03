@@ -12,7 +12,7 @@ struct HintInfo
     var localized string    Text;  // hint display text
 };
 
-const                   HINT_COUNT = 75;
+const                   HINT_COUNT = 76;
 
 var     HintInfo        Hints[HINT_COUNT];        // array of hints in default properties
 var     array<byte>     QueuedHintIndices;        // queue of hints waiting to be displayed in turn
@@ -35,12 +35,23 @@ function StartCheckingForHints()
     QueueHint(52);          // Situation Map
     QueueHint(50);          // Communication
     QueueHint(51);          // VOIP Communication
+
     SetTimer(1.0, true);
 }
 
 // Non-state repeating hint check timer goes to DisplayingHint state if it finds any queued hint(s)
 simulated function Timer()
 {
+    local DHPlayer PC;
+
+    PC = DHPlayer(Owner);
+
+    if (PC != none && PC.IsSquadLeader())
+    {
+        QueueHint(54, true);    // Welcome, Squad Leader!
+        QueueHint(55, true);    // Command Menu
+    }
+
     if (QueuedHintIndices.Length > 0)
     {
         GotoState('DisplayingHint');
@@ -211,7 +222,7 @@ defaultproperties
     Hints(55)=(Title="Command Menu",Text="As a squad leader or assistant, press and hold [%CAPSLOCK%] to bring up your command menu. From this menu, you can place constructions, create rally points, spot enemies and more!")
     Hints(56)=(Title="Squad Rally Points",Text="You are able to place rally points (spawn points) by pressing %PLACERALLYPOINT% when you have at least one other squadmate nearby. The rally point indicator in the bottom right of your screen indicates your ability to place a rally point.")
     Hints(57)=(Title="Squad Rally Points",Text="Keeping at least one rally point active for your squad is the single most important thing you can do as a squad leader. Without one, it will be difficult for your squad to get to the front lines and fight together.")
-    Hints(58)=(Title="Squad Orders",Text="It’s important to let your squad know objective (eg. attack, defend, move). You can set your squad’s current objective by right-clicking on the situation map.")
+    Hints(58)=(Title="Squad Orders",Text="It’s important to let your squad know their objective (eg. attack, defend, move). You can set your squad’s current objective by right-clicking on the situation map.")
     Hints(59)=(Title="Squad Rally Points",Text="Enemy fire and nearby enemies can destroy your squad’s rally points. Be sure to place them in safe areas so that you and your squad can get to the front lines quickly!")
     Hints(60)=(Title="Managing Rally Points",Text="You are able to maintain two (2) rally points at once. However, only one may be active at a time. From the situation map, you can swap the active rally point by right-clicking the active rally point and selecting “Set as Secondary”.")
     Hints(61)=(Title="Behind Enemy Lines",Text="You are behind enemy lines! Rally points behind enemy lines are less effective. Be sure to place your squad’s rally points in your own territory whenever possible.")
