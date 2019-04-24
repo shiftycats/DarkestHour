@@ -96,6 +96,7 @@ var localized   string                      NoneText,
                                             BotsText,
                                             SquadOnlyText,
                                             SquadLeadershipOnlyText,
+                                            NotQualifiedText,
                                             RecommendJoiningSquadText;
 
 // NOTE: The reason this variable is needed is because the PlayerController's
@@ -624,6 +625,13 @@ function UpdateRoles()
         }
 
         bShouldBeDisabled = PC.GetRoleInfo() != RI && Limit > 0 && Count >= Limit && BotCount == 0;
+
+        // If restricted (because not qualified to use), then disable
+        if (PC.WeaponRestrictionData.IsRestricted(RI))
+        {
+            S @= "*" $ NotQualifiedText $ "*";
+            bShouldBeDisabled = true;
+        }
 
         // If not in a squad AND gametype restricts specialized roles to squads only AND the role is not limitless AND the role is not excempt
         if (PRI != none && !PRI.IsInSquad() && GRI.GameType.default.bSquadSpecialRolesOnly && Limit != 255 && !RI.bExemptSquadRequirement)
@@ -1751,6 +1759,7 @@ defaultproperties
     BotsText="BOTS"
     SquadOnlyText="SQUADS ONLY"
     SquadLeadershipOnlyText="LEADERS ONLY"
+    NotQualifiedText="NOT QUALIFIED"
     RecommendJoiningSquadText="It it HIGHLY RECOMMENDED that you JOIN A SQUAD before deploying! Joining a squad grants you additional deployment options and lets you get to the fight faster.||Do you want to automatically join a squad now?"
 
     MapMode=MODE_Map

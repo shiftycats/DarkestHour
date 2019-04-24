@@ -144,7 +144,8 @@ var     float                   NextToggleDuckTimeSeconds;
 // Spectating stuff
 var     bool                    bSpectateAllowViewPoints;
 
-var     DHScoreManager          ScoreManager;
+var     DHScoreManager               ScoreManager;
+var     DHWeaponRestrictionData      WeaponRestrictionData;
 
 // "Lazy" camera controls
 var     bool                    bLazyCam;
@@ -226,6 +227,9 @@ simulated event PostBeginPlay()
         {
             break;
         }
+
+        // Create client-sided DHWeaponRestrictionData instance
+        WeaponRestrictionData = Spawn(class'DHWeaponRestrictionData', self);
     }
 
     // This forces the player to choose a valid spectator mode instead of
