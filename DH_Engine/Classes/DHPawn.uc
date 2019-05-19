@@ -4176,10 +4176,23 @@ simulated function HUDCheckMantle()
     }
 }
 
+simulated function HUDCheckCutWire()
+{
+    if (IsLocallyControlled())
+    {
+        bCanCutWire = CanCutWire();
+    }
+}
+
 // Check whether there's anything in front of the player that can be built with the shovel
 simulated function bool CanDig()
 {
     return Weapon != none && Weapon.IsA('DHShovelItem') && Weapon.GetFireMode(0) != none && Weapon.GetFireMode(0).AllowFire();
+}
+
+simulated function bool CanCutWire()
+{
+    return Weapon != none && Weapon.IsA('DHWirecuttersItem') && Weapon.GetFireMode(0) != none && Weapon.GetFireMode(0).AllowFire();
 }
 
 simulated function bool CanMantleActor(Actor A)
