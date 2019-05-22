@@ -3832,6 +3832,7 @@ function DrawMap(Canvas C, AbsoluteCoordsInfo SubCoords, DHPlayer Player, Box Vi
         }
     }
 
+    DrawDetectedPlayers(C, Subcoords, MyMapScale, MapCenter, Viewport);
     DrawMapMarkersOnMap(C, Subcoords, MyMapScale, MapCenter, Viewport);
     DrawPlayerIconsOnMap(C, SubCoords, MyMapScale, MapCenter, Viewport);
     DrawExposedEnemyRallyPoints(C, SubCoords, MyMapScale, MapCenter, Viewport);
@@ -3850,6 +3851,37 @@ function DrawMap(Canvas C, AbsoluteCoordsInfo SubCoords, DHPlayer Player, Box Vi
     {
         DrawNetworkActorsOnMap(C, SubCoords, MyMapScale, MapCenter);
     }
+}
+
+function DrawDetectedPlayers(Canvas C, AbsoluteCoordsInfo SubCoords, float MyMapScale, vector MapCenter, Box Viewport)
+{
+    local int i, Yaw;
+    local vector L;
+
+    if (DHGRI == none)
+    {
+        return;
+    }
+
+   for (i = 0; i < arraycount(DHGRI.TrackerRegistry); ++i)
+   {
+       if (DHGRI.TrackerRegistry[i].Pawn == none)
+       {
+           if (DHGRI.TrackerRegistry[i].Quantized2DPose == 0)
+           {
+               continue;
+           }
+
+           class'UQuantize'.static.DequantizeClamped2DPose(DHGRI.TrackerRegistry[i].Quantized2DPose, L.X, L.Y, Yaw);
+       }
+       else
+       {
+           L = DHGRI.TrackerRegistry[i].Pawn.Location;
+           Yaw = DHGRI.TrackerRegistry[i].Pawn.Rotation.Yaw;
+       }
+
+       DrawPlayerIconOnMap(C, SubCoords, MyMapScale, L, MapCenter, Viewport, Yaw, class'UColor'.default.Red, PlayerIconScale);
+   }
 }
 
 function DrawMapMarkerOnMap(Canvas C, AbsoluteCoordsInfo SubCoords, float MyMapScale, vector MapCenter, Box Viewport, class<DHMapMarker> MapMarkerClass, vector Target, Pawn P, optional string Caption)

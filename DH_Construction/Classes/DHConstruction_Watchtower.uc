@@ -5,6 +5,50 @@
 
 class DHConstruction_Watchtower extends DHConstruction;
 
+var class<DHTrackerMasterAttachment> TrackerMasterAttachmentClass;
+var DHTrackerMasterAttachment        TrackerMasterAttachment ;
+
+simulated function OnConstructed()
+{
+    local DHGameReplicationInfo GRI;
+
+    if (Role == ROLE_Authority)
+    {
+        GRI = DHGameReplicationInfo(Level.Game.GameReplicationInfo);
+
+        if (GRI == none)
+        {
+            return;
+        }
+
+        SetTeamIndex(GRI.GetDangerZoneTeamIndex(Location.X, Location.Y));
+
+        if (TrackerMasterAttachmentClass != none && GetTeamIndex() < 2)
+        {
+            TrackerMasterAttachment = Spawn(TrackerMasterAttachmentClass, self);
+
+            if (TrackerMasterAttachment != none)
+            {
+                Log("MASTER > Spawned");
+                TrackerMasterAttachment.SetTeamIndex(GetTeamIndex());
+                TrackerMasterAttachment.Setup();
+            }
+            else
+            {
+                Warn("Failed to spawn tracker master attachment");
+            }
+        }
+    }
+}
+
+simulated function DestroyAttachments()
+{
+    if (TrackerMasterAttachment != none)
+    {
+        TrackerMasterAttachment.Destroy();
+    }
+}
+
 defaultproperties
 {
     Stages(0)=(StaticMesh=StaticMesh'DH_Construction_stc.Constructions.GER_watchtower_undeployed')
@@ -39,10 +83,11 @@ defaultproperties
     StartRotationMax=(Yaw=-16384)
     MenuIcon=Texture'DH_InterfaceArt2_tex.Icons.WatchTower'
     GroupClass=Class'DHConstructionGroup_Defenses'
-    SupplyCost=900
+    SupplyCost=500
     bCanTakeImpactDamage=true
     MinDamagetoHurt=25
     bAcceptsProjectors=false
+    TrackerMasterAttachmentClass=class'DHTrackerMasterAttachment'
 
     // Damage
     DamageTypeScales(0)=(DamageType=class'DHArtilleryDamageType',Scale=1.5)         // Artillery
@@ -53,4 +98,3 @@ defaultproperties
     DamageTypeScales(5)=(DamageType=class'DH_SatchelDamType',Scale=1.4)             // Satchels
     DamageTypeScales(6)=(DamageType=class'DHMortarDamageType',Scale=0.5)            // Mortar
 }
-

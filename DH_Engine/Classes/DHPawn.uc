@@ -116,6 +116,9 @@ var     int                 BurnTimeLeft;                  // number of seconds 
 var     float               LastBurnTime;                  // last time we did fire damage to the Pawn
 var     Pawn                FireStarter;                   // who set a player on fire
 
+// Tracking
+var     DHTrackerSlaveAttachment TrackerSlaveAttachment;
+
 replication
 {
     // Variables the server will replicate to clients when this actor is 1st replicated

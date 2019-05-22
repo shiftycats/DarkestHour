@@ -19,6 +19,7 @@ const MAP_MARKERS_MAX = 20;
 const MAP_MARKERS_CLASSES_MAX = 16;
 const ARTILLERY_TYPES_MAX = 8;
 const ARTILLERY_MAX = 8;
+const TRACKER_ENTRIES_MAX = 31;
 
 enum VehicleReservationError
 {
@@ -184,6 +185,15 @@ var class<DHMapMarker>                  MapMarkerClasses[MAP_MARKERS_CLASSES_MAX
 var MapMarker                           AxisMapMarkers[MAP_MARKERS_MAX];
 var MapMarker                           AlliesMapMarkers[MAP_MARKERS_MAX];
 
+// Tracking info for players detected via watchtowers, etc.
+struct TrackerEntry
+{
+    var DHPawn Pawn;
+    var int Quantized2DPose;
+};
+
+var TrackerEntry TrackerRegistry[TRACKER_ENTRIES_MAX];
+
 replication
 {
     // Variables the server will replicate to all clients
@@ -236,6 +246,7 @@ replication
         TeamMunitionPercentages,
         AlliesVictoryMusicIndex,
         AxisVictoryMusicIndex,
+        TrackerRegistry,
         bIsDangerZoneEnabled,
         DangerZoneIntensityScale;
 
@@ -1399,6 +1410,38 @@ simulated function GetTeamSizes(out int TeamSizes[2])
 }
 
 //==============================================================================
+// TRACKING INFO (WATCHTOWERS)
+//==============================================================================
+
+function int AddTrackerEntry(DHPawn Pawn)
+{
+    local int i;
+
+    for (i = 0; i < arraycount(TrackerRegistry); ++i)
+    {
+        if (TrackerRegistry[i].Pawn == none)
+        {
+            // TODO: We don't need the rotation
+            TrackerRegistry[i].Pawn = Pawn;
+            TrackerRegistry[i].Quantized2DPose = class'UQuantize'.static.QuantizeClamped2DPose(Pawn.Location.X, Pawn.Location.Y, Pawn.Rotation.Yaw);
+
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+function RemoveTrackerEntry(int Index)
+{
+    if (Index < arraycount(TrackerRegistry))
+    {
+        TrackerRegistry[Index].Pawn = none;
+        TrackerRegistry[Index].Quantized2DPose = -1;
+    }
+}
+
+//==============================================================================
 // MAP MARKERS
 //==============================================================================
 
@@ -1818,6 +1861,21 @@ simulated function float GetDangerZoneIntensity(float PointerX, float PointerY, 
 simulated function bool IsInDangerZone(float PointerX, float PointerY, byte TeamIndex)
 {
     return class'DHDangerZone'.static.IsIn(self, PointerX, PointerY, TeamIndex);
+}
+
+simulated function byte GetDangerZoneTeamIndex(float PointerX, float PointerY)
+{
+    if (IsInDangerZone(PointerX, PointerY, AXIS_TEAM_INDEX))
+    {
+        return ALLIES_TEAM_INDEX;
+    }
+
+    if (IsInDangerZone(PointerX, PointerY, ALLIES_TEAM_INDEX))
+    {
+        return AXIS_TEAM_INDEX;
+    }
+
+    return NEUTRAL_TEAM_INDEX;
 }
 
 simulated function PostNetReceive()
