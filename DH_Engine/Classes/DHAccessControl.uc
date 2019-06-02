@@ -16,6 +16,8 @@ struct Patron
 var private array<string>           DeveloperIDs;
 var private array<Patron>           Patrons; // A list of patreon ROIDs for users that are on MAC and don't work with normal system
 
+var globalconfig array<string>      MutedIDs;
+
 function bool AdminLogin(PlayerController P, string Username, string Password)
 {
     local xAdminUser    User;
@@ -140,6 +142,26 @@ static function string GetPatronTier(string ROID)
     }
 
     return "";
+}
+
+function bool IsMuted(PlayerController PC)
+{
+    local int i;
+
+    if (PC == none)
+    {
+        return false;
+    }
+
+    for (i = 0; i < MutedIDs.Length; ++i)
+    {
+        if (MutedIDs[i] == PC.GetPlayerIDHash())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 defaultproperties
