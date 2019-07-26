@@ -69,8 +69,10 @@ var     vector                  FlinchOffsetMag;
 var     vector                  FlinchOffsetRate;
 var     float                   FlinchOffsetTime;
 var     float                   FlinchMaxOffset;
+var     float                   FlinchMeterSwayMultiplier;
 var     float                   FlinchMeterValue;
 var     float                   FlinchMeterIncrement;
+var     float                   FlinchMeterFallOffStrength;
 var     float                   LastFlinchTime;
 
 // Mantling
@@ -154,6 +156,9 @@ var     bool                    bLazyCam;
 var     float                   LazyCamLaziness;
 var     rotator                 LazyCamRotationTarget;
 
+// Surrender
+var     bool                    bSurrendered;
+
 replication
 {
     // Variables the server will replicate to the client that owns this actor
@@ -163,7 +168,8 @@ replication
         DHPrimaryWeapon, DHSecondaryWeapon, bSpectateAllowViewPoints,
         SquadReplicationInfo, SquadMemberLocations, bSpawnedKilled,
         SquadLeaderLocations, bIsGagged,
-        NextSquadRallyPointTime, SquadRallyPointCount;
+        NextSquadRallyPointTime, SquadRallyPointCount,
+        bSurrendered;
 
     // Functions a client can call on the server
     reliable if (Role < ROLE_Authority)
@@ -174,24 +180,27 @@ replication
         ServerSquadCreate, ServerSquadRename,
         ServerSquadJoin, ServerSquadJoinAuto, ServerSquadLeave,
         ServerSquadInvite, ServerSquadPromote, ServerSquadKick, ServerSquadBan,
-        ServerSquadMakeAssistant,
+        ServerSquadMakeAssistant, ServerSendVote,
         ServerSquadSay, ServerCommandSay, ServerSquadLock, ServerSquadSignal,
         ServerSquadSpawnRallyPoint, ServerSquadDestroyRallyPoint, ServerSquadSwapRallyPoints,
         ServerSetPatronTier, ServerSquadLeaderVolunteer, ServerForgiveLastFFKiller,
         ServerSendSquadMergeRequest, ServerAcceptSquadMergeRequest, ServerDenySquadMergeRequest,
         ServerSquadVolunteerToAssist,
         ServerPunishLastFFKiller, ServerRequestArtillery, ServerCancelArtillery, /*ServerVote,*/
-        ServerDoLog, ServerLeaveBody, ServerPossessBody, ServerDebugObstacles, ServerLockWeapons; // these ones in debug mode only
+        ServerDoLog, ServerLeaveBody, ServerPossessBody, ServerDebugObstacles, ServerLockWeapons, // these ones in debug mode only
+        ServerTeamSurrenderRequest;
 
     // Functions the server can call on the client that owns this actor
     reliable if (Role == ROLE_Authority)
         ClientProne, ClientToggleDuck, ClientLockWeapons,
         ClientAddHudDeathMessage, ClientFadeFromBlack, ClientProposeMenu,
         ClientConsoleCommand, ClientCopyToClipboard, ClientSaveROIDHash,
-        ClientSquadInvite, ClientSquadSignal, ClientSquadLeaderVolunteerPrompt, ClientTeamSurrenderPrompt,
+        ClientSquadInvite, ClientSquadSignal, ClientSquadLeaderVolunteerPrompt,
         ClientTeamKillPrompt, ClientOpenLogFile, ClientLogToFile, ClientCloseLogFile,
         ClientSquadAssistantVolunteerPrompt,
-        ClientReceieveSquadMergeRequest, ClientSendSquadMergeRequestResult;
+        ClientReceiveSquadMergeRequest, ClientSendSquadMergeRequestResult,
+        ClientTeamSurrenderResponse,
+        ClientReceiveVotePrompt;
 
     unreliable if (Role < ROLE_Authority)
         VehicleVoiceMessage;
@@ -673,7 +682,7 @@ function ChangeName(coerce string S)
 
 simulated function float GetFlinchMeterFalloff(float TimeSeconds)
 {
-    return (TimeSeconds ** 2.0) * 0.05;
+    return (TimeSeconds ** 2.0) * FlinchMeterFallOffStrength;
 }
 
 // Give the player a quick flinch and blur effect
@@ -789,6 +798,7 @@ function UpdateRotation(float DeltaTime, float MaxPitch)
 {
     local DHPawn    DHPwn;
     local ROWeapon  ROWeap;
+    local DHProjectileWeapon  DHPW;
     local ROVehicle ROVeh;
     local rotator   NewRotation, ViewRotation;
     local float     TurnSpeedFactor;
@@ -798,6 +808,7 @@ function UpdateRotation(float DeltaTime, float MaxPitch)
     {
         DHPwn = DHPawn(Pawn);
         ROWeap = ROWeapon(Pawn.Weapon);
+        DHPW = DHProjectileWeapon(Pawn.Weapon);
         ROVeh = ROVehicle(Pawn);
     }
 
@@ -908,7 +919,7 @@ function UpdateRotation(float DeltaTime, float MaxPitch)
             TurnSpeedFactor = DHStandardTurnSpeedFactor;
         }
 
-        if (ROWeap != none && ROWeap.bPlayerViewIsZoomed)
+        if (DHPW != none && DHPW.bHasScope && DHPW.bUsingSights)
         {
             TurnSpeedFactor *= DHScopeTurnSpeedFactor; // reduce if player is using a sniper scope or binocs
         }
@@ -2197,6 +2208,7 @@ function ServerUse()
                 if(DHPawn(Pawn) != none && DHPawn(Pawn).GunToRotate != none)
                 {
                     DHPawn(Pawn).GunToRotate.ServerExitRotation();
+                    DHPawn(Pawn).SwitchToLastWeapon();
                 }
 
                 if (EntryVehicle != none && EntryVehicle.TryToDrive(Pawn))
@@ -2753,8 +2765,8 @@ simulated function SwayHandler(float DeltaTime)
 
     if (FlinchFactor > 0.0)
     {
-        WeaponSwayYawAcc *= 1.0 + FlinchFactor;
-        WeaponSwayPitchAcc *= 1.0 + FlinchFactor;
+        WeaponSwayYawAcc *= 1.0 + (FlinchFactor * FlinchMeterSwayMultiplier);
+        WeaponSwayPitchAcc *= 1.0 + (FlinchFactor * FlinchMeterSwayMultiplier);
     }
 
     // Add an elastic factor to get sway near the original aim-point, & a damping factor to keep elastic factor from causing wild oscillations
@@ -2835,9 +2847,12 @@ function ServerSetPlayerInfo(byte newTeam, byte newRole, byte NewWeapon1, byte N
     local DHRoleInfo RI;
     local DHGameReplicationInfo GRI;
     local DHPlayerReplicationInfo PRI;
+    local byte OldTeamIndex;
 
     GRI = DHGameReplicationInfo(Level.Game.GameReplicationInfo);
     PRI = DHPlayerReplicationInfo(PlayerReplicationInfo);
+
+    OldTeamIndex = GetTeamNum();
 
     // Attempt to change teams
     if (newTeam != 255)
@@ -2981,6 +2996,12 @@ function ServerSetPlayerInfo(byte newTeam, byte newRole, byte NewWeapon1, byte N
     // Set weapons
     ChangeWeapons(NewWeapon1, NewWeapon2, 0);
 
+    // Team change event
+    if (NewTeam != OldTeamIndex)
+    {
+        OnTeamChanged();
+    }
+
     // Return result to client
     if (NewTeam == AXIS_TEAM_INDEX)
     {
@@ -3048,6 +3069,22 @@ function ServerSetPlayerInfo(byte newTeam, byte newRole, byte NewWeapon1, byte N
         else
         {
             ClientChangePlayerInfoResult(0);
+        }
+    }
+}
+
+function OnTeamChanged()
+{
+    local DarkestHourGame G;
+
+    G = DarkestHourGame(Level.Game);
+
+    if (G != none && G.VoteManager != none)
+    {
+        // Reset player's surrender status
+        if (bSurrendered)
+        {
+            G.VoteManager.RemoveNomination(self, class'DHVoteInfo_TeamSurrender');
         }
     }
 }
@@ -5171,11 +5208,6 @@ simulated function ClientTeamKillPrompt(string LastFFKillerString)
     Player.InteractionMaster.AddInteraction("DH_Engine.DHTeamKillInteraction", Player);
 }
 
-simulated function ClientTeamSurrenderPrompt()
-{
-    Player.InteractionMaster.AddInteraction("DH_Engine.DHTeamSurrenderInteraction", Player);
-}
-
 function ServerSquadVolunteerToAssist()
 {
     local int TeamIndex, SquadIndex;
@@ -5207,18 +5239,6 @@ function ServerSquadVolunteerToAssist()
     }
 
     SLPC.ClientSquadAssistantVolunteerPrompt(TeamIndex, SquadIndex, PRI);
-}
-
-function ServerVote(bool bVote, DHPromptInteraction Interaction)
-{
-    local DarkestHourGame G;
-
-    G = DarkestHourGame(Level.Game);
-
-    if (G != none)
-    {
-        G.PlayerVoted(self, bVote, Interaction);
-    }
 }
 
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -5715,6 +5735,18 @@ function ServerCommandSay(string Msg)
     if (G != none)
     {
         G.BroadcastCommand(self, Level.Game.ParseMessageString(Level.Game.BaseMutator, self, Msg) , 'CommandSay');
+    }
+}
+
+function ServerVehicleSay(string Msg)
+{
+    local DarkestHourGame G;
+
+    G = DarkestHourGame(Level.Game);
+
+    if (G != none)
+    {
+        G.BroadcastVehicle(self, Level.Game.ParseMessageString(Level.Game.BaseMutator, self, Msg) , 'VehicleSay');
     }
 }
 
@@ -6324,6 +6356,88 @@ function ReceiveScoreEvent(DHScoreEvent ScoreEvent)
     }
 }
 
+simulated function ClientTeamSurrenderResponse(int Result)
+{
+    local UT2K4GUIController GC;
+    local GUIPage Page;
+
+    // Find the currently open ROGUIRoleSelection menu and notify it
+    GC = UT2K4GUIController(Player.GUIController);
+
+    if (GC == none)
+    {
+        return;
+    }
+
+    Page = GC.FindMenuByClass(class'GUIPage');
+
+    if (Page != none)
+    {
+        Page.OnMessage("NOTIFY_GUI_SURRENDER_RESULT", Result);
+    }
+}
+
+function ServerTeamSurrenderRequest(optional bool bAskForConfirmation)
+{
+    local DarkestHourGame G;
+
+    G = DarkestHourGame(Level.Game);
+
+    if (G == none || G.VoteManager == none)
+    {
+        return;
+    }
+
+    // Keep fighting
+    if (bSurrendered)
+    {
+        G.VoteManager.RemoveNomination(self, class'DHVoteInfo_TeamSurrender');
+        return;
+    }
+
+    // Surrender
+    if (bAskForConfirmation)
+    {
+        if (class'DHVoteInfo_TeamSurrender'.static.CanNominate(self, G))
+        {
+            // Send the confirmation prompt
+            ClientTeamSurrenderResponse(-1);
+        }
+    }
+    else
+    {
+        G.VoteManager.AddNomination(self, class'DHVoteInfo_TeamSurrender');
+    }
+}
+
+function ServerSendVote(int VoteId, int OptionIndex)
+{
+    local DarkestHourGame G;
+    local DHVoteManager VM;
+
+    G = DarkestHourGame(Level.Game);
+
+    if (G != none)
+    {
+        VM = G.VoteManager;
+
+        if (VM != none)
+        {
+            VM.PlayerVoted(self, VoteId, OptionIndex);
+        }
+    }
+}
+
+simulated function ClientReceiveVotePrompt(class<DHVoteInfo> VoteInfoClass, int VoteId, optional string OptionalString)
+{
+    // TODO: display the interaction prompt!
+    // TODO: how are we showing other interactions?
+    class'DHVoteInteraction'.default.VoteInfoClass = VoteInfoClass;
+    class'DHVoteInteraction'.default.VoteId = VoteId;
+
+    Player.InteractionMaster.AddInteraction("DH_Engine.DHVoteInteraction", Player);
+}
+
 simulated function Destroyed()
 {
     super.Destroyed();
@@ -6425,7 +6539,7 @@ function ServerDenySquadMergeRequest(int SquadMergeRequestID)
     }
 }
 
-function ClientReceieveSquadMergeRequest(int SquadMergeRequestID, string SenderPlayerName, string SenderSquadName)
+function ClientReceiveSquadMergeRequest(int SquadMergeRequestID, string SenderPlayerName, string SenderSquadName)
 {
     if (bIgnoreSquadMergeRequestPrompts)
     {
@@ -6704,7 +6818,9 @@ defaultproperties
     FlinchMaxOffset=450.0
 
     // Flinch meter
+    FlinchMeterSwayMultiplier=1.05
     FlinchMeterIncrement=0.08
+    FlinchMeterFallOffStrength=0.04
 
     // Flinch from bullet snaps when deployed
     FlinchRotMag=(X=100.0,Y=0.0,Z=100.0)

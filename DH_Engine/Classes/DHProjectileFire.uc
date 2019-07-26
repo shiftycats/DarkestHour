@@ -506,7 +506,6 @@ function bool PreLaunchTrace(vector Start, vector Direction)
 simulated function float GetFiringSoundPitch()
 {
     local float                 Pitch;
-    local DHWeaponBarrel        B;
     local DHProjectileWeapon    W;
 
     // Set default pitch
@@ -620,7 +619,7 @@ simulated function HandleRecoil()
         NewRecoilRotation.Yaw = RandRange(MaxHorizontalRecoilAngle * 0.75, MaxHorizontalRecoilAngle);
 
         // Randomize the horizontal recoil (so it goes left or right)
-        if( Rand(2) == 1)
+        if (Rand(2) == 1)
         {
             NewRecoilRotation.Yaw *= -1;
         }
@@ -776,8 +775,8 @@ defaultproperties
     PctCrouchIronRecoil=0.6
     PctProneRecoil=0.7
     PctProneIronRecoil=0.4
-    PctBipodDeployRecoil=0.1
     PctRestDeployRecoil=0.5
+    PctBipodDeployRecoil=0.1
     PctLeanPenalty=1.25
     RecoilCurve=(Points=((InVal=0.0,OutVal=1.0),(InVal=10000000000.0,OutVal=1.0))) // Default curve has no impact on recoil
     RecoilGainIncrementAmount=1.0

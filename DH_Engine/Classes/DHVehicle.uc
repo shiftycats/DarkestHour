@@ -297,6 +297,11 @@ simulated function Destroyed()
     super.Destroyed();
 
     DestroyAttachments();
+
+    if (NotifyParameters != none)
+    {
+        NotifyParameters.Clear();
+    }
 }
 
 function StartEngineFire(Pawn InstigatedBy);
@@ -3201,6 +3206,11 @@ simulated function DestroyAttachments()
         if (SupplyAttachment != none)
         {
             SupplyAttachment.Destroy();
+        }
+
+        if (MapIconAttachment != none)
+        {
+            MapIconAttachment.Destroy();
         }
     }
 

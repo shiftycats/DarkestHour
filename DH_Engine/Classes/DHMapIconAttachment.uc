@@ -81,7 +81,7 @@ function Timer()
     if (IsMoving())
     {
         GotoState('Tracking');
-        Updated();
+        UpdateDangerZoneStatus();
     }
     else
     {
@@ -133,8 +133,27 @@ state Tracking
 
     function EndState()
     {
-        Updated();
+        UpdateDangerZoneStatus();
         bIgnoreGRIUpdates = default.bIgnoreGRIUpdates;
+    }
+}
+
+final function UpdateDangerZoneStatus(optional bool bForceUpdateVisibility)
+{
+    bInDangerZone = IsInDangerZone();
+
+    if (bInDangerZone != bOldInDangerZone || bForceUpdateVisibility)
+    {
+        bOldInDangerZone = bInDangerZone;
+
+        if (bInDangerZone)
+        {
+            SetVisibilityIndex(GetVisibilityInDangerZone());
+        }
+        else
+        {
+            SetVisibilityIndex(GetVisibility());
+        }
     }
 }
 
@@ -142,33 +161,8 @@ final function Updated()
 {
     if (bTrackDangerZone)
     {
-        bInDangerZone = IsInDangerZone();
-
-        if (bInDangerZone != bOldInDangerZone)
-        {
-            bOldInDangerZone = bInDangerZone;
-
-            if (bInDangerZone)
-            {
-                // OnDangerZoneEnter();
-                SetVisibilityIndex(GetVisibilityInDangerZone());
-            }
-            else
-            {
-                // OnDangerZoneLeave();
-                SetVisibilityIndex(GetVisibility());
-            }
-
-            return;
-        }
-
-        if (IsInState('Tracking'))
-        {
-            return;
-        }
+        UpdateDangerZoneStatus();
     }
-
-    SetVisibilityIndex(GetVisibility());
 }
 
 final function SetVisibilityIndex(EVisibleFor VisibleFor)
@@ -224,7 +218,14 @@ final function SetTeamIndex(byte TeamIndex)
 {
     self.TeamIndex = TeamIndex;
 
-    Updated();
+    if (bTrackDangerZone)
+    {
+        UpdateDangerZoneStatus(true);
+    }
+    else
+    {
+        SetVisibilityIndex(GetVisibility());
+    }
 }
 
 final simulated function byte GetTeamIndex()
@@ -277,7 +278,7 @@ final function UpdateQuantized2DPose()
 
     GRI = DHGameReplicationInfo(Level.Game.GameReplicationInfo);
 
-    if (GRI != none)
+    if (GRI != none && AttachedTo != none)
     {
         GRI.GetMapCoords(AttachedTo.Location, X, Y);
         Quantized2DPose = class'UQuantize'.static.QuantizeClamped2DPose(X, Y, AttachedTo.Rotation.Yaw);
@@ -319,24 +320,26 @@ function EVisibleFor GetVisibilityInDangerZone();
 
 simulated function color GetIconColor(DHPlayer PC)
 {
-    if (PC.GetTeamNum() == TeamIndex)
+    local byte PlayerTeamIndex;
+
+    if (PC != none)
     {
-        return class'DHColor'.default.FriendlyColor;
-    }
-    else if (PC.GetTeamNum() == 255)
-    {
-        switch(TeamIndex)
+        PlayerTeamIndex = PC.GetTeamNum();
+
+        if (PlayerTeamIndex > 1)
         {
-            case AXIS_TEAM_INDEX:
-                return class'DHColor'.default.TeamColors[0];
-            case ALLIES_TEAM_INDEX:
-                return class'DHColor'.default.TeamColors[1];
+            if (TeamIndex < arraycount(class'DHColor'.default.TeamColors))
+            {
+                return class'DHColor'.default.TeamColors[TeamIndex];
+            }
+        }
+        else if (PlayerTeamIndex != TeamIndex && TeamIndex < 2)
+        {
+            return class'UColor'.default.Red;
         }
     }
-    else
-    {
-        return class'UColor'.default.Red;
-    }
+
+    return class'DHColor'.default.FriendlyColor;
 }
 
 simulated function Material GetIconMaterial(DHPlayer PC)

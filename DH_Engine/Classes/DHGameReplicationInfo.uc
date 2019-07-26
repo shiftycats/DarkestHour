@@ -182,6 +182,13 @@ var class<DHMapMarker>                  MapMarkerClasses[MAP_MARKERS_CLASSES_MAX
 var MapMarker                           AxisMapMarkers[MAP_MARKERS_MAX];
 var MapMarker                           AlliesMapMarkers[MAP_MARKERS_MAX];
 
+// Delayed round ending
+var byte   RoundWinnerTeamIndex;
+var string RoundEndReason;
+
+var         bool bIsSurrenderVoteEnabled;
+var private byte SurrenderVotesInProgress[2];
+
 replication
 {
     // Variables the server will replicate to all clients
@@ -235,7 +242,10 @@ replication
         AxisVictoryMusicIndex,
         bIsDangerZoneEnabled,
         DangerZoneNeutral,
-        DangerZoneBalance;
+        DangerZoneBalance,
+        RoundWinnerTeamIndex,
+        bIsSurrenderVoteEnabled,
+        SurrenderVotesInProgress;
 
     reliable if (bNetInitial && Role == ROLE_Authority)
         AlliedNationID, ConstructionClasses, MapMarkerClasses;
@@ -348,6 +358,19 @@ simulated function PostNetBeginPlay()
                 }
             }
         }
+    }
+}
+
+simulated function PostNetReceive()
+{
+    super.PostNetReceive();
+
+    if (OldDangerZoneNeutral != DangerZoneNeutral || OldDangerZoneBalance != DangerZoneBalance)
+    {
+        DangerZoneUpdated();
+
+        OldDangerZoneNeutral = DangerZoneNeutral;
+        OldDangerZoneBalance = DangerZoneBalance;
     }
 }
 
@@ -1904,16 +1927,23 @@ simulated function DangerZoneUpdated()
     }
 }
 
-simulated function PostNetReceive()
+//==============================================================================
+// SURRENDER VOTE
+//==============================================================================
+
+simulated function bool IsSurrenderVoteInProgress(byte TeamIndex)
 {
-    super.PostNetReceive();
-
-    if (OldDangerZoneNeutral != DangerZoneNeutral || OldDangerZoneBalance != DangerZoneBalance)
+    if (TeamIndex < arraycount(SurrenderVotesInProgress))
     {
-        DangerZoneUpdated();
+        return bool(SurrenderVotesInProgress[TeamIndex]);
+    }
+}
 
-        OldDangerZoneNeutral = DangerZoneNeutral;
-        OldDangerZoneBalance = DangerZoneBalance;
+function SetSurrenderVoteInProgress(byte TeamIndex, bool bInProgress)
+{
+    if (TeamIndex < arraycount(SurrenderVotesInProgress))
+    {
+        SurrenderVotesInProgress[TeamIndex] = byte(bInProgress);
     }
 }
 
@@ -1926,6 +1956,7 @@ defaultproperties
     ArtilleryTargetDistanceThreshold=15088 //250 meters in UU
     ForceScaleText="Size"
     ReinforcementsInfiniteText="Infinite"
+    RoundWinnerTeamIndex=255
 
     // Constructions
 

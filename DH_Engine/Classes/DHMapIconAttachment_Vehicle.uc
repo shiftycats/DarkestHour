@@ -31,6 +31,6 @@ simulated function Material GetIconMaterial(DHPlayer PC)
 defaultproperties
 {
     bTrackMovement=true
-    IconMaterial=TexRotator'DH_GUI_Tex.GUI.supply_point_rot'
-    IconScale=0.03
+    IconMaterial=TexRotator'DH_InterfaceArt2_tex.Icons.truck_topdown_rot'
+    IconScale=0.035
 }

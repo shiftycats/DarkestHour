@@ -371,13 +371,10 @@ simulated function ClientEnterRotation()
 
     if (Role != ROLE_Authority)
     {
-        //bCollideWorld = false;
-        //SetCollision(false,false,false);
         SetPhysics(PHYS_None);
     }
 
     bOldIsRotating = bIsBeingRotated;
-
 
     FadeMaterial = new class'FadeColor';
     FadeMaterial.Color1 = class'UColor'.default.White;
@@ -539,13 +536,7 @@ state Rotating
         if (RotateControllerPawn != none)
         {
             RotateControllerPawn.GunToRotate = none;
-            RotateControllerPawn.ClientExitATRotation();
-
-            if (RotateControllerPawn.Weapon.IsA('DH_ATGunRotateWeapon'))
-            {
-                RotateControllerPawn.SwitchToLastWeapon();
-                RotateControllerPawn.ChangedWeapon();
-            }
+            RotateControllerPawn.ServerExitATRotation();
         }
     }
 }
@@ -672,6 +663,7 @@ defaultproperties
     bCanCrash=false
 
     // Miscellaneous
+    TouchMessageClass=class'DHATGunTouchMessage'
     TouchMessage="Use the "
     VehicleMass=5.0 // TODO: rationalise the mass & centre of mass settings of guns, but experiment with effect on ground contact & vehicle collisions
     MaxDesireability=1.9
@@ -703,7 +695,7 @@ defaultproperties
 
     // Rotation
     PlayersNeededToRotate=1
-    RotationsPerSecond=0.125
+    RotationsPerSecond=0.1
     bFixedRotationDir=false
     RotateCooldown=5
     RotateControlRadiusInMeters=5
