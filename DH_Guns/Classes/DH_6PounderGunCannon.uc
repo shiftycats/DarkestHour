@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_6PounderGunCannon extends DH_AT57Cannon;
@@ -12,8 +12,15 @@ defaultproperties
     PrimaryProjectileClass=class'DH_Guns.DH_6PounderCannonShell'
     SecondaryProjectileClass=class'DH_Guns.DH_6PounderCannonShellAPDS'
     TertiaryProjectileClass=class'DH_Guns.DH_6PounderCannonShellHE'
+
+
     ProjectileDescriptions(1)="APDS"
     ProjectileDescriptions(2)="HE"
+
+    nProjectileDescriptions(0)="Mk.XT APC"
+    nProjectileDescriptions(1)="Mk.I APDS"
+    nProjectileDescriptions(2)="Mk.X HE-T"
+
     InitialPrimaryAmmo=22
     InitialSecondaryAmmo=3
     InitialTertiaryAmmo=8

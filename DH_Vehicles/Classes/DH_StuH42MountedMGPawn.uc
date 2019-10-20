@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_StuH42MountedMGPawn extends DHVehicleMGPawn;
@@ -56,5 +56,4 @@ defaultproperties
     GunsightCameraBone="Gun"
     GunsightOverlay=Texture'DH_VehicleOptics_tex.German.KZF2_MGSight'
     GunsightSize=0.381 // 18 degrees visible FOV at 1.8x magnification (KFZ2 sight)
-    BinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_6x30Germ'
 }

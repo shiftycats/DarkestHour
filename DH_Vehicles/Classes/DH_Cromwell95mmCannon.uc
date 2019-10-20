@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_Cromwell95mmCannon extends DH_CromwellCannon;
@@ -20,9 +20,15 @@ defaultproperties
     PrimaryProjectileClass=class'DH_Vehicles.DH_Cromwell95mmCannonShellHE'
     SecondaryProjectileClass=class'DH_Vehicles.DH_Cromwell95mmCannonShellSmoke'
     TertiaryProjectileClass=class'DH_Vehicles.DH_Cromwell95mmCannonShellHEAT'
+
     ProjectileDescriptions(0)="HE"
     ProjectileDescriptions(1)="Smoke"
     ProjectileDescriptions(2)="HEAT"
+
+    nProjectileDescriptions(0)="Mk.IA HE-T"
+    nProjectileDescriptions(1)="Mk.IA SMK-BE"
+    nProjectileDescriptions(2)="Mk.I HEAT"
+
     InitialPrimaryAmmo=14
     InitialSecondaryAmmo=8
     InitialTertiaryAmmo=4

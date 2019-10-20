@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DarkestHourGame extends ROTeamGame;
@@ -8,6 +8,7 @@ class DarkestHourGame extends ROTeamGame;
 var     Hashtable_string_Object     PlayerSessions; // When a player leaves the server this info is stored for the session so if they return these values won't reset
 
 var     DH_LevelInfo                DHLevelInfo;
+var     DHGameReplicationInfo       GRI;
 
 var     DHAmmoResupplyVolume        DHResupplyAreas[10];
 
@@ -20,8 +21,7 @@ var     DHObjective                 DHObjectives[OBJECTIVES_MAX];
 var     DHSpawnManager              SpawnManager;
 var     DHObstacleManager           ObstacleManager;
 var     DHConstructionManager       ConstructionManager;
-
-var     DHVoteInfo                  ActiveVotes[3];                         // 0-Axis, 1-Allies, 2-Both
+var     DHVoteManager               VoteManager;
 
 var     array<string>               FFViolationIDs;                         // Array of ROIDs that have been kicked once this session
 var()   config bool                 bSessionKickOnSecondFFViolation;
@@ -36,13 +36,13 @@ var     class<DHObstacleManager>    ObstacleManagerClass;
 
 var()   config bool                 bAllowAllChat;                          // optional bool to disable public text chat on the server
 
-var()   config float                AccuracyModifier;                       // 1.0 for normal weapon accuracy, raise for worse accuracy
-
 var()   config int                  ChangeTeamInterval;                     // Server setting determines how long before a player can change teams again after doing so
                                                                             // Also currently is the length of time for which a player can change teams for free at the beginning of a round
                                                                             // Note: if bPlayersBalanceTeams is false, players will still be able to change teams
 
 var()   config int                  DisableAllChatThreshold;                // Player count to disallow all chat at
+var()   config int                  EnableIdleKickingThreshold;             // Player count required before idle kicking is turned on
+var()   config bool                 bUseIdleKickingThreshold;               // If enabled, will change idle kicking based on the numplayers and threshold
 
 var     array<float>                ReinforcementMessagePercentages;
 var     int                         TeamReinforcementMessageIndices[2];
@@ -53,8 +53,8 @@ var     byte                        bDidSendEnemyTeamWeakMessage[2];        // F
 
 const SERVERTICKRATE_UPDATETIME =       15.0;   // The duration we use to calculate the average tick the server is running
 const MAXINFLATED_INTERVALTIME =        100.0;  // The max value to add to reinforcement time for inflation for poor performance
-const ADDED_RESPAWN_TIME_PUNISHMENT =   30.0;   // How much to increase ConsolidatedRespawnTimeAdded by when server receives a strike
-const PERFORMANCE_INFRACTION_MARGIN =   5;      // How many infractions allowed before the server receives a strike
+const ADDED_RESPAWN_TIME_PUNISHMENT =   20.0;   // How much to increase ConsolidatedRespawnTimeAdded by when server receives a strike
+const PERFORMANCE_INFRACTION_MARGIN =   8;      // How many infractions allowed before the server receives a strike
 const PERFORMANCE_STRIKE_MARGIN =       2;      // How many strikes allowed before a MidGameVote is forced
 const PERFORMANCE_MERIT_MARGIN =        20;     // How many merits before it begins removing infractions
 const SPAWN_KILL_RESPAWN_TIME =         2;
@@ -75,6 +75,7 @@ var     bool                        bIsAttritionEnabled;                    // T
 var     float                       CalculatedAttritionRate[2];
 var     float                       TeamAttritionCounter[2];
 var     bool                        bSwapTeams;
+var     bool                        bIsDangerZoneEnabled;
 
 var     float                       AlliesToAxisRatio;
 
@@ -84,13 +85,19 @@ var     class<DHMetrics>            MetricsClass;
 var     DHMetrics                   Metrics;
 var     config bool                 bEnableMetrics;
 
-var     string                      ServerLocation;
+var()   config string               ServerLocation;
 var     UVersion                    Version;
 var     DHSquadReplicationInfo      SquadReplicationInfo;
 
 var()   config int                  EmptyTankUnlockTime;                    // Server config option for how long (secs) before unlocking a locked armored vehicle if abandoned by its crew
 
-var     DHGameReplicationInfo       GRI;
+var()   config bool                 bIsSurrenderVoteEnabled;
+var()   config int                  SurrenderCooldownSeconds;               // The time between the votes
+var()   config int                  SurrenderEndRoundDelaySeconds;          // The time delay before the round ends
+var()   config int                  SurrenderRoundTimeRequiredSeconds;      // How soon the vote can be nominated
+var()   config float                SurrenderReinforcementsRequiredPercent; // How short on tickets the team needs to be
+var()   config float                SurrenderNominationsThresholdPercent;   // Nominations needed to start the vote
+var()   config float                SurrenderVotesThresholdPercent;         // "Yes" votes needed for the vote to pass
 
 // The response types for requests.
 enum EArtilleryResponseType
@@ -127,39 +134,15 @@ event InitGame(string Options, out string Error)
         AccessControl.Destroy();
         AccessControl = Spawn(class'DH_Engine.DHAccessControl');
     }
-}
 
-function GetServerLocation()
-{
-    local HTTPRequest LocationRequest;
+    // Force the server to update the MaxClientRate, setting it in config file
+    // doesn't work as intended (something bugged in native)
+    // This command will unlock a server so it can allow clients to have more
+    // than 10000 netspeed.
+    ConsoleCommand("set IpDrv.TcpNetDriver MaxClientRate 30000");
 
-    // Now send the location request
-    LocationRequest = Spawn(class'HTTPRequest');
-    LocationRequest.Method = "GET";
-    LocationRequest.Host = "ip-api.com";
-    LocationRequest.Path = "/json";
-    LocationRequest.OnResponse = LocationRequestOnResponse;
-    LocationRequest.Send();
-}
-
-function LocationRequestOnResponse(int Status, TreeMap_string_string Headers, string Content)
-{
-    local JSONParser Parser;
-    local JSONObject O;
-    local string City, Country;
-
-    if (Status == 200)
-    {
-        Parser = new class'JSONParser';
-        O = Parser.ParseObject(Content);
-
-        if (O != none)
-        {
-            City = O.Get("city").AsString();
-            Country = O.Get("country").AsString();
-            default.ServerLocation = City $ "," @ Country;
-        }
-    }
+    // Initialize geolocation service (verifies cache integrity)
+    class'DHGeolocationService'.static.Initialize();
 }
 
 function PreBeginPlay()
@@ -167,11 +150,6 @@ function PreBeginPlay()
     super.PreBeginPlay();
 
     SquadReplicationInfo = Spawn(class'DHSquadReplicationInfo');
-
-    if (default.ServerLocation == "Unknown")
-    {
-        GetServerLocation();
-    }
 }
 
 function PostBeginPlay()
@@ -315,6 +293,15 @@ function PostBeginPlay()
 
     GRI.TeamMunitionPercentages[AXIS_TEAM_INDEX] = DHLevelInfo.BaseMunitionPercentages[AXIS_TEAM_INDEX];
     GRI.TeamMunitionPercentages[ALLIES_TEAM_INDEX] = DHLevelInfo.BaseMunitionPercentages[ALLIES_TEAM_INDEX];
+
+    if (bIsDangerZoneEnabled && (SquadReplicationInfo.bAreRallyPointsEnabled || class'DH_LevelInfo'.static.DHDebugMode()))
+    {
+        GRI.SetDangerZoneEnabled(DHLevelInfo.bIsDangerZoneInitiallyEnabled, true);
+        GRI.SetDangerZoneNeutral(DHLevelInfo.DangerZoneNeutral, true);
+        GRI.SetDangerZoneBalance(DHLevelInfo.DangerZoneBalance, true);
+    }
+
+    GRI.bIsSurrenderVoteEnabled = bIsSurrenderVoteEnabled;
 
     // Artillery
     GRI.ArtilleryStrikeLimit[AXIS_TEAM_INDEX] = LevelInfo.Axis.ArtilleryStrikeLimit;
@@ -461,7 +448,15 @@ function PostBeginPlay()
         Metrics = Spawn(MetricsClass);
     }
 
+
     PlayerSessions = class'Hashtable_string_Object'.static.Create(128);
+
+    VoteManager = Spawn(class'DHVoteManager', self);
+
+    if (VoteManager == none)
+    {
+        Warn("Failed to spawn vote manager");
+    }
 }
 
 // Modified to remove any return on # of bots (and to remove chance of negative)
@@ -521,11 +516,7 @@ event Tick(float DeltaTime)
 // Function which will calculate the server's network health based on combined player packloss
 function UpdateServerNetHealth()
 {
-    const    PACKET_LOSS_THRESHOLD   = 30; // The packetloss at which to count the player as "insanely high" packet loss
-    const    THRESHOLD_OVERRIDE      = 10; // Num players required to be over threshold to show "insanely high" packet loss
-
-    local int       i, Combined, Average, OverThreshold;
-    local bool      bWebAdminExists;
+    local int i, Combined;
 
     if (GRI == none)
     {
@@ -534,47 +525,14 @@ function UpdateServerNetHealth()
 
     for (i = 0; i < GRI.PRIArray.Length; ++i)
     {
-        // Don't count the webadmin
+        // Make sure its a player
         if (DHPlayerReplicationInfo(GRI.PRIArray[i]) != none)
         {
-            if (GRI.PRIArray[i].PacketLoss <= PACKET_LOSS_THRESHOLD)
-            {
-                Combined += GRI.PRIArray[i].PacketLoss; // Only count players who are under threshold
-            }
-            else
-            {
-                ++OverThreshold; // Count # of players over threshold
-            }
-        }
-        else if (GRI.PRIArray[i].PlayerName == "WebAdmin")
-        {
-            bWebAdminExists = true;
+            Combined += GRI.PRIArray[i].PacketLoss;
         }
     }
 
-    // Calculate average packet loss (not counting webadmin)
-    if (bWebAdminExists)
-    {
-        Average = Clamp(Combined / (GRI.PRIArray.Length - 1), 0, 255);
-    }
-    else
-    {
-        Average = Clamp(Combined / (GRI.PRIArray.Length), 0, 255);
-    }
-
-    if (bLogAverageTickRate)
-    {
-        Log("Average Server Packet Loss:" @ Average);
-    }
-
-    // If enough players are over the PACKET_LOSS_THRESHOLD, then something is terribly wrong
-    if (OverThreshold > THRESHOLD_OVERRIDE)
-    {
-        GRI.ServerNetHealth = 255; // insanely high packetloss value
-        return;
-    }
-
-    GRI.ServerNetHealth = byte(Average);
+    GRI.ServerNetHealth = Combined;
 }
 
 // Function to handle performance infractions (multiple infractions lead to strikes, strikes will lead to level change)
@@ -622,10 +580,6 @@ function HandlePerformanceInfraction()
 
             PoorPerformanceInfractionCount = 0; // Reset infractions
         }
-    }
-    else
-    {
-        Level.Game.Broadcast(self, "Server is performing poorly, respawn times increased temporarily to improve performance!", 'Say');
     }
 
     // Handle Reinforcement Intervals
@@ -2108,7 +2062,7 @@ function Killed(Controller Killer, Controller Killed, Pawn KilledPawn, class<Dam
     local Controller P;
     local float      FFPenalty;
     local int        i;
-    local bool       bHasAPlayerAlive;
+    local bool       bHasAPlayerAlive, bInformedKillerOfWeaponLock;
 
     if (Killed == none)
     {
@@ -2148,7 +2102,19 @@ function Killed(Controller Killer, Controller Killed, Pawn KilledPawn, class<Dam
                 if (!DHPawn(KilledPawn).IsCombatSpawned())
                 {
                     DHKiller.WeaponLockViolations++;
-                    DHKiller.LockWeapons(Min(WeaponLockTimeSecondsMaximum, DHKiller.WeaponLockViolations * WeaponLockTimeSecondsInterval)); // TODO: probably add 1 second as we are 'mid second' in game time
+
+                    // If friendly fire
+                    if (bTeamGame && Killer.PlayerReplicationInfo != none && Killed.PlayerReplicationInfo != none && Killer.PlayerReplicationInfo.Team == Killed.PlayerReplicationInfo.Team)
+                    {
+                        DHKiller.LockWeapons(Min(WeaponLockTimeSecondsMaximum, DHKiller.WeaponLockViolations * WeaponLockTimeSecondsInterval) + 1);
+                        DHKiller.ReceiveLocalizedMessage(class'DHWeaponsLockedMessage', 5); // "Your weapons have been locked due to spawn killing a friendly!"
+                        bInformedKillerOfWeaponLock = true;
+                    }
+                    else
+                    {
+                        DHKiller.LockWeapons(Min(WeaponLockTimeSecondsMaximum, DHKiller.WeaponLockViolations * WeaponLockTimeSecondsInterval) + 1);
+                        DHKiller.ReceiveLocalizedMessage(class'DHWeaponsLockedMessage', 0); // "Your weapons have been locked due to excessive spawn killing!"
+                    }
                 }
 
                 if (DHPawn(KilledPawn) != none && DHPawn(KilledPawn).SpawnPoint != none)
@@ -2210,18 +2176,24 @@ function Killed(Controller Killer, Controller Killed, Pawn KilledPawn, class<Dam
                 {
                     BroadcastLocalizedMessage(GameMessageClass, 13, DHKiller.PlayerReplicationInfo);
 
-                    // Lock weapons for TKing (more strict than spawn killing)
+                    // Lock weapons for TKing, this is run twice if the TK was also a Spawn Kill (this means double violation for Spawn TKing)
                     DHKiller.WeaponLockViolations++;
 
                     if (DHPlayerReplicationInfo(DHKiller.PlayerReplicationInfo) != none)
                     {
-                        DHKiller.LockWeapons(Min(WeaponLockTimeSecondsMaximum, DHKiller.PlayerReplicationInfo.FFKills * WeaponLockTimeSecondsFFKillsMultiplier), 4);
+                        // This will override the weapon lock time, TKs have a higher time punishment, however it will not override the message on that player's screen
+                        DHKiller.LockWeapons(Min(WeaponLockTimeSecondsMaximum, DHKiller.PlayerReplicationInfo.FFKills * WeaponLockTimeSecondsFFKillsMultiplier));
+
+                        // If we haven't already informed the killer of weapon lock (in the case of spawn killing a friendly), then inform them of weapon lock for TKing
+                        if (!bInformedKillerOfWeaponLock)
+                        {
+                            DHKiller.ReceiveLocalizedMessage(class'DHWeaponsLockedMessage', 4); // "Your weapons have been locked due to friendly fire!"
+                        }
                     }
 
                     // If bForgiveFFKillsEnabled, store the friendly Killer into the Killed player's controller, so if they choose to forgive, we'll know who to forgive
                     if (bForgiveFFKillsEnabled && DHKilled != none)
                     {
-                        //DHKilled.ReceiveLocalizedMessage(GameMessageClass, 18, DHKiller.PlayerReplicationInfo); removed as we have F1 prompt now
                         DHKilled.LastFFKiller = ROPlayerReplicationInfo(DHKiller.PlayerReplicationInfo);
                         DHKilled.LastFFKillAmount = FFPenalty;
                     }
@@ -2335,7 +2307,8 @@ function BroadcastDeathMessage(Controller Killer, Controller Killed, class<Damag
     local PlayerReplicationInfo KillerPRI, KilledPRI;
     local Controller C;
 
-    if ((DeathMessageMode == DM_None || Killed == none) && DamageType != class'DHSpawnKillDamageType')
+    // (Message mode is none Or Killed doesn't exist) AND DamageType is not type DHInstantObituaryDamageTypes, then return
+    if ((DeathMessageMode == DM_None || Killed == none) && class<DHInstantObituaryDamageTypes>(DamageType) == none)
     {
         return;
     }
@@ -2348,7 +2321,8 @@ function BroadcastDeathMessage(Controller Killer, Controller Killed, class<Damag
     KilledPRI = Killed.PlayerReplicationInfo;
 
     // OnDeath means only send DM to player who is killed, Personal means send DM to both killed & killer
-    if ((DeathMessageMode == DM_OnDeath || DeathMessageMode == DM_Personal) && DamageType != class'DHSpawnKillDamageType')
+    // (If message mode is OnDeath or Personal) AND DamageType is not type DHInstantObituaryDamageTypes
+    if ((DeathMessageMode == DM_OnDeath || DeathMessageMode == DM_Personal) && class<DHInstantObituaryDamageTypes>(DamageType) == none)
     {
         // Send DM to a killed human player
         if (DHPlayer(Killed) != none)
@@ -2722,6 +2696,11 @@ state RoundInPlay
             }
         }
 
+        if (GRI.GameType.default.bAreObjectiveSpawnsEnabled)
+        {
+            UpdateObjectiveSpawns();
+        }
+
         if (LevelInfo.bUseSpawnAreas)
         {
             CheckSpawnAreas();
@@ -2809,6 +2788,18 @@ state RoundInPlay
             GRI.bAllChatEnabled = true;
         }
 
+        // If server is currently not kicking idlers AND numplayers > EnableIdleKickingThreshold, then enable idle kicking
+        if (bUseIdleKickingThreshold && GetNumPlayers() >= EnableIdleKickingThreshold)
+        {
+            //MaxIdleTime = 300;
+            Level.bKickLiveIdlers = true;
+        }
+        else if (bUseIdleKickingThreshold && GetNumPlayers() < EnableIdleKickingThreshold)
+        {
+            //MaxIdleTime = 0;
+            Level.bKickLiveIdlers = false;
+        }
+
         // Go through both teams and spawn reinforcements if necessary
         for (i = 0; i < 2; ++i)
         {
@@ -2862,6 +2853,7 @@ state RoundInPlay
             if (TeamAttritionCounter[i] >= 1.0)
             {
                 ModifyReinforcements(i, -TeamAttritionCounter[i]);
+                HandleReinforcementChangeMessages(i);
                 TeamAttritionCounter[i] = TeamAttritionCounter[i] % 1.0;
             }
         }
@@ -2937,6 +2929,11 @@ state ResetGameCountdown
             if (Level.NetMode == NM_DedicatedServer || Level.NetMode == NM_ListenServer)
             {
                 Spawn(class'DHClientResetGame');
+            }
+
+            if (GRI != none)
+            {
+                GRI.RoundWinnerTeamIndex = GRI.default.RoundWinnerTeamIndex;
             }
 
             Level.Game.BroadcastLocalized(none, class'ROResetGameMsg', 11);
@@ -3081,7 +3078,6 @@ function ModifyReinforcements(int Team, int Amount, optional bool bSetReinforcem
     // If round is in play AND roundtime is currently infinite AND the team is out of reinforcements AND the gametype can change time when at zero reinf
     if (IsInState('RoundInPlay') && GRI.DHRoundDuration == 0 && GRI.SpawnsRemaining[Team] == 0 && DHLevelInfo.GameTypeClass.default.bTimeCanChangeAtZeroReinf)
     {
-
         // If the opposing team is within limit for changing round time, then change round time
         if (GRI.SpawnsRemaining[int(!bool(Team))] <= DHLevelInfo.GameTypeClass.default.OutOfReinfLimitForTimeChange)
         {
@@ -3105,7 +3101,6 @@ function ResetArtilleryTargets()
 function HandleReinforcements(Controller C)
 {
     local DHPlayer PC;
-    local float ReinforcementPercent;
 
     PC = DHPlayer(C);
 
@@ -3118,66 +3113,49 @@ function HandleReinforcements(Controller C)
     if (PC.GetTeamNum() == ALLIES_TEAM_INDEX && GRI.SpawnsRemaining[ALLIES_TEAM_INDEX] != -1)
     {
         ModifyReinforcements(ALLIES_TEAM_INDEX, -1);
-
-        ReinforcementPercent = float(GRI.SpawnsRemaining[ALLIES_TEAM_INDEX]) / SpawnsAtRoundStart[ALLIES_TEAM_INDEX];
-
-        // Handle reinforcement % message
-        if (GRI.GameType.default.bUseReinforcementWarning && !GRI.bIsInSetupPhase)
-        {
-            while (TeamReinforcementMessageIndices[ALLIES_TEAM_INDEX] < default.ReinforcementMessagePercentages.Length &&
-                    ReinforcementPercent <= default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[ALLIES_TEAM_INDEX]])
-            {
-                BroadcastTeamLocalizedMessage(Level, ALLIES_TEAM_INDEX, class'DHReinforcementMsg', 100 * default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[ALLIES_TEAM_INDEX]]);
-
-                ++TeamReinforcementMessageIndices[ALLIES_TEAM_INDEX];
-            }
-
-            // The team is very low on reinforcements, men are fleeing! Enemy should know they are about to win
-            if (TeamReinforcementMessageIndices[ALLIES_TEAM_INDEX] > default.ReinforcementMessagePercentages.Length - 1)
-            {
-                if (bDidSendEnemyTeamWeakMessage[AXIS_TEAM_INDEX] == 0)
-                {
-                    BroadcastTeamLocalizedMessage(Level, AXIS_TEAM_INDEX, class'DHEnemyInformationMsg', 0);
-
-                    bDidSendEnemyTeamWeakMessage[AXIS_TEAM_INDEX] = 1;
-                }
-            }
-        }
+        HandleReinforcementChangeMessages(ALLIES_TEAM_INDEX);
     }
     else if (PC.GetTeamNum() == AXIS_TEAM_INDEX && GRI.SpawnsRemaining[AXIS_TEAM_INDEX] != -1)
     {
         ModifyReinforcements(AXIS_TEAM_INDEX, -1);
-
-        ReinforcementPercent = float(GRI.SpawnsRemaining[AXIS_TEAM_INDEX]) / SpawnsAtRoundStart[AXIS_TEAM_INDEX];
-
-        // Handle reinforcement % message
-        if (GRI.GameType.default.bUseReinforcementWarning && !GRI.bIsInSetupPhase)
-        {
-            while (TeamReinforcementMessageIndices[AXIS_TEAM_INDEX] < default.ReinforcementMessagePercentages.Length &&
-                    ReinforcementPercent <= default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[AXIS_TEAM_INDEX]])
-            {
-                BroadcastTeamLocalizedMessage(Level, AXIS_TEAM_INDEX, class'DHReinforcementMsg', 100 * default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[AXIS_TEAM_INDEX]]);
-
-                ++TeamReinforcementMessageIndices[AXIS_TEAM_INDEX];
-            }
-
-            // The team is very low on reinforcements, men are fleeing! Enemy should know they are about to win
-            if (TeamReinforcementMessageIndices[AXIS_TEAM_INDEX] > default.ReinforcementMessagePercentages.Length - 1)
-            {
-                if (bDidSendEnemyTeamWeakMessage[ALLIES_TEAM_INDEX] == 0)
-                {
-                    BroadcastTeamLocalizedMessage(Level, ALLIES_TEAM_INDEX, class'DHEnemyInformationMsg', 0);
-
-                    bDidSendEnemyTeamWeakMessage[ALLIES_TEAM_INDEX] = 1;
-                }
-            }
-        }
+        HandleReinforcementChangeMessages(AXIS_TEAM_INDEX);
     }
 
     if (PC.bFirstRoleAndTeamChange && GetStateName() == 'RoundInPlay')
     {
         PC.NotifyOfMapInfoChange();
         PC.bFirstRoleAndTeamChange = true;
+    }
+}
+
+// Handles the messages regarding low reinforcements, should be called by anything that lowers reinforcements
+function HandleReinforcementChangeMessages(int Team)
+{
+    local float ReinforcementPercent;
+
+    ReinforcementPercent = float(GRI.SpawnsRemaining[Team]) / SpawnsAtRoundStart[Team];
+
+    // Handle reinforcement % message
+    if (GRI.GameType.default.bUseReinforcementWarning && !GRI.bIsInSetupPhase)
+    {
+        while (TeamReinforcementMessageIndices[Team] < default.ReinforcementMessagePercentages.Length &&
+               ReinforcementPercent <= default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[Team]])
+        {
+            BroadcastTeamLocalizedMessage(Level, Team, class'DHReinforcementMsg', 100 * default.ReinforcementMessagePercentages[TeamReinforcementMessageIndices[Team]]);
+
+            ++TeamReinforcementMessageIndices[Team];
+        }
+
+        // The team is very low on reinforcements, men are fleeing! Enemy should know they are about to win
+        if (TeamReinforcementMessageIndices[Team] > default.ReinforcementMessagePercentages.Length - 1)
+        {
+            if (bDidSendEnemyTeamWeakMessage[int(!bool(Team))] == 0)
+            {
+                BroadcastTeamLocalizedMessage(Level, int(!bool(Team)), class'DHEnemyInformationMsg', 0);
+
+                bDidSendEnemyTeamWeakMessage[int(!bool(Team))] = 1;
+            }
+        }
     }
 }
 
@@ -3228,6 +3206,14 @@ static function string ParseChatPercVar(Mutator BaseMutator, Controller Who, str
     return super.ParseChatPercVar(BaseMutator, Who, Cmd);
 }
 
+function UpdateRallyPoints()
+{
+    if (SquadReplicationInfo != none)
+    {
+        SquadReplicationInfo.UpdateRallyPoints();
+    }
+}
+
 //***********************************************************************************
 // exec FUNCTIONS - These functions natively require admin access
 //***********************************************************************************
@@ -3240,11 +3226,6 @@ exec function SetServerViewDistance(int NewDistance)
     {
         Z.SetNewTargetFogDistance(NewDistance);
     }
-}
-
-exec function SetAllChat(bool bOn)
-{
-    GRI.bAllChatEnabled = bOn;
 }
 
 exec function SetAllChatThreshold(int NewThreshold)
@@ -3373,6 +3354,7 @@ exec function WinRound(optional int TeamToWin)
 exec function SetReinforcements(int Team, int Amount)
 {
     ModifyReinforcements(Team, Amount, true);
+    HandleReinforcementChangeMessages(Team);
 }
 
 // Function to allow for capturing a currently active objective (for the supplied team), can also specify the ObjName and if it should be neutralized instead
@@ -3420,6 +3402,35 @@ exec function ChangeRoundTime(int Minutes, optional string Type)
     default:
         ModifyRoundTime(Minutes * 60, 2);
         break;
+    }
+}
+
+exec function ChangeSetupPhaseTime(int Minutes, int Seconds, optional string OperationType)
+{
+    local DHSetupPhaseManager SPM;
+    local int TimeInSeconds;
+
+    if (GRI == none || !GRI.bIsInSetupPhase)
+    {
+        return;
+    }
+
+    TimeInSeconds = Max(0, Minutes) * 60 + Max(0, Seconds);
+
+    foreach AllActors(class'DHSetupPhaseManager', SPM)
+    {
+        switch (OperationType)
+        {
+            case "Add":
+                SPM.ModifySetupPhaseDuration(TimeInSeconds);
+                break;
+            case "Subtract":
+                SPM.ModifySetupPhaseDuration(-TimeInSeconds);
+                break;
+            default:
+                SPM.ModifySetupPhaseDuration(TimeInSeconds, true);
+                break;
+        }
     }
 }
 
@@ -3502,6 +3513,46 @@ exec function MidGameVote()
     }
 }
 
+exec function SetDangerZone(bool bEnabled)
+{
+    if (GRI == none)
+    {
+        return;
+    }
+
+    GRI.SetDangerZoneEnabled(bEnabled);
+}
+
+exec function SetDangerZoneNeutral(byte Factor)
+{
+    if (GRI == none)
+    {
+        return;
+    }
+
+    GRI.SetDangerZoneNeutral(Factor);
+}
+
+exec function SetDangerZoneBalance(int Factor)
+{
+    if (GRI == none)
+    {
+        return;
+    }
+
+    GRI.SetDangerZoneBalance(Factor);
+}
+
+exec function SetSurrenderVote(bool bEnabled)
+{
+    if (GRI == none)
+    {
+        return;
+    }
+
+    GRI.bIsSurrenderVoteEnabled = bEnabled;
+}
+
 //***********************************************************************************
 // END exec Functions!!!
 //***********************************************************************************
@@ -3532,6 +3583,9 @@ function DeployRestartPlayer(Controller C, optional bool bHandleReinforcements, 
 
         if (PC != none)
         {
+            // Spawn player failed, so invalidate some selections and have the player open the deploy menu
+            PC.SpawnPointIndex = -1;
+            PC.VehiclePoolIndex = -1;
             PC.DeployMenuStartMode = MODE_Map;
             PC.ClientProposeMenu("DH_Interface.DHDeployMenu");
         }
@@ -3615,6 +3669,81 @@ function bool DHRestartPlayer(Controller C, optional bool bHandleReinforcements)
     }
 
     return true;
+}
+
+// Function which creates objective spawns where they are valid
+function UpdateObjectiveSpawns()
+{
+    local int i, Team;
+    local array<int> ObjIndices;
+    local DHObjective Obj;
+    local DHSpawnPoint_Objective SpawnPoint;
+
+    if (GRI == none)
+    {
+        return;
+    }
+
+    // For each team.
+    for (Team = 0; Team < 2; ++Team)
+    {
+        // Clear the objective index array for the team.
+        ObjIndices.Length = 0;
+
+        // Get the objective indices for valid objective spawns.
+        GRI.GetIndicesForObjectiveSpawns(Team, ObjIndices);
+
+        // Loop all objectives
+        for (i = 0; i < arraycount(GRI.DHObjectives); ++i)
+        {
+            Obj = GRI.DHObjectives[i];
+
+            if (Obj == none)
+            {
+                continue;
+            }
+
+            if (class'UArray'.static.IIndexOf(ObjIndices, i) == -1)
+            {
+                // If the objective has a spawn point reference and is neutral
+                // or controlled by current team, destroy the spawn point.
+                if (Obj.SpawnPoint != none && (int(Obj.ObjState) == Team || Obj.IsNeutral()))
+                {
+                    Obj.SpawnPoint.Destroy();
+                }
+            }
+            else
+            {
+                // The objective should have a spawn point!
+                // Check if an objective already has a spawn point.
+                if (Obj.SpawnPoint != none)
+                {
+                    // If the team is not the same, delete it.
+                    if (Obj.SpawnPoint.GetTeamIndex() != Team)
+                    {
+                        Obj.SpawnPoint.Destroy();
+                    }
+                    else
+                    {
+                        // No changes to this spawn point.
+                        continue;
+                    }
+                }
+
+                SpawnPoint = Spawn(class'DH_Engine.DHSpawnPoint_Objective', self,, Obj.Location);
+
+                // Setup the properties of the new spawn point.
+                SpawnPoint.SetTeamIndex(Team);
+                SpawnPoint.Objective = Obj;
+                SpawnPoint.InfantryLocationHintTag = Obj.SpawnPointHintTags[Team];
+                SpawnPoint.BuildLocationHintsArrays();
+                SpawnPoint.SetIsActive(true);
+
+                // Assign the SpawnPoint reference in the objective
+                Obj.SpawnPoint = SpawnPoint;
+            }
+        }
+    }
 }
 
 // Functionally identical to ROTeamGame.ChangeTeam except we reset additional parameters in DHPlayer
@@ -3864,18 +3993,10 @@ function ChangeWeapons(Controller aPlayer, int Primary, int Secondary, int Grena
 
 function UpdateMunitionPercentages()
 {
-    const MIN_MUNITION_PERCENTAGE = 10.0;
-
     local int i;
-    local float p;
+    local float MunitionDifference, ElapsedRatio;
 
     if (GRI == none)
-    {
-        return;
-    }
-
-    // Don't update munitions if the gamemode does not specify to TODO: perhaps this should be up to levels, but for now it should be gamemode so we have control in code
-    if (!GRI.GameType.default.bMunitionsDrainOverTime)
     {
         return;
     }
@@ -3883,12 +4004,50 @@ function UpdateMunitionPercentages()
     // Calculate and set the Munition Percentages for each team
     for (i = 0; i < 2; ++i)
     {
-        // Get the munition percentage by this formula:    StartingMunitions - (ElaspedMinutes * LossRate)
-        p = DHLevelInfo.BaseMunitionPercentages[i] - ((GRI.ElapsedTime - GRI.RoundStartTime) / 60.0 * DHLevelInfo.MunitionLossPerMinute[i]);
+        ElapsedRatio = FClamp(((GRI.ElapsedTime - GRI.RoundStartTime) / 60.0) / 60.0, 0.0, 1.0);
 
-        // Set the GRI value clamped to the munition percentage
-        GRI.TeamMunitionPercentages[i] = FClamp(p, MIN_MUNITION_PERCENTAGE, 100.0);
+        // If Base > Final (aka ammo goes down)
+        if (DHLevelInfo.BaseMunitionPercentages[i] > DHLevelInfo.FinalMunitionPercentages[i])
+        {
+            MunitionDifference = DHLevelInfo.BaseMunitionPercentages[i] - DHLevelInfo.FinalMunitionPercentages[i];
+
+            GRI.TeamMunitionPercentages[i] = DHLevelInfo.BaseMunitionPercentages[i] - (MunitionDifference * ElapsedRatio);
+        }
+        else // Ammo is going up over time
+        {
+            MunitionDifference = DHLevelInfo.FinalMunitionPercentages[i] - DHLevelInfo.BaseMunitionPercentages[i];
+
+            GRI.TeamMunitionPercentages[i] = DHLevelInfo.BaseMunitionPercentages[i] + (MunitionDifference * ElapsedRatio);
+        }
     }
+}
+
+function DelayedEndRound(int Delay, string Reason, byte WinnerTeamIndex, class<LocalMessage> WinnerMessageClass, int WinnerMessageOption, class<LocalMessage> LoserMessageClass, int LoserMessageOption)
+{
+    local string WinnerTeamName;
+
+    if (GRI == none || !IsInState('RoundInPlay') || GRI.RoundWinnerTeamIndex < 2)
+    {
+        return;
+    }
+
+    switch (WinnerTeamIndex)
+    {
+        case AXIS_TEAM_INDEX:
+            WinnerTeamName = "Axis";
+            break;
+        case ALLIES_TEAM_INDEX:
+            WinnerTeamName = "Allies";
+    }
+
+    GRI.RoundWinnerTeamIndex = WinnerTeamIndex;
+    GRI.RoundEndReason = Repl(Reason, "{0}", WinnerTeamName); // "The {0} has won the round because..."
+
+    ModifyRoundTime(Delay, 2);
+
+    // Inform the teams
+    BroadcastTeamLocalizedMessage(Level, int(!bool(WinnerTeamIndex)), LoserMessageClass, LoserMessageOption);
+    BroadcastTeamLocalizedMessage(Level, WinnerTeamIndex, WinnerMessageClass, WinnerMessageOption);
 }
 
 // Modified for DHObjectives
@@ -3902,6 +4061,14 @@ function ChooseWinner()
 
     if (GRI == none)
     {
+        return;
+    }
+
+    // Delayed round ending
+    if (GRI.RoundWinnerTeamIndex < 2)
+    {
+        Level.Game.Broadcast(self, GRI.RoundEndReason, 'Say');
+        EndRound(GRI.RoundWinnerTeamIndex);
         return;
     }
 
@@ -4825,6 +4992,8 @@ event PostLogin(PlayerController NewPlayer)
     {
         PC.bSpectateAllowViewPoints = bSpectateAllowViewPoints && ViewPoints.Length > 0;
     }
+
+    class'DHGeolocationService'.static.GetIpData(PC);
 }
 
 // Override to leave hash and info in PlayerData, basically to save PRI data for the session
@@ -4926,6 +5095,18 @@ function BroadcastCommand(Controller Sender, coerce string Msg, optional name Ty
     if (BH != none)
     {
         BH.BroadcastCommand(Sender, Msg, Type);
+    }
+}
+
+function BroadcastVehicle(Controller Sender, coerce string Msg, optional name Type)
+{
+    local DHBroadcastHandler BH;
+
+    BH = DHBroadcastHandler(BroadcastHandler);
+
+    if (BH != none)
+    {
+        BH.BroadcastVehicle(Sender, Msg, Type);
     }
 }
 
@@ -5055,7 +5236,7 @@ function GetServerDetails(out ServerResponseLine ServerState)
     super.GetServerDetails(ServerState);
 
     AddServerDetail(ServerState, "Version", Version.ToString());
-    AddServerDetail(ServerState, "Location", default.ServerLocation);
+    AddServerDetail(ServerState, "Location", ServerLocation);
     AddServerDetail(ServerState, "AverageTick", ServerTickRateAverage);
 }
 
@@ -5180,40 +5361,6 @@ function ArtilleryResponse RequestArtillery(DHArtilleryRequest Request)
     return Response;
 }
 
-exec function StartSurrenderVote(int Team)
-{
-    // Check to see if we already have a vote present for the team
-    //
-
-}
-
-function PlayerVoted(DHPlayer Player,bool bVote, DHPromptInteraction Interaction)
-{
-
-
-}
-
-// Overriden to stop the addition of duplicate keys into the server info array.
-static function AddServerDetail(out ServerResponseLine ServerState, string RuleName, coerce string RuleValue)
-{
-    local int i;
-
-    for (i = 0; i < ServerState.ServerInfo.Length; ++i)
-    {
-        if (ServerState.ServerInfo[i].Key == RuleName)
-        {
-            ServerState.ServerInfo[i].Value = RuleValue;
-            return;
-        }
-    }
-
-    i = ServerState.ServerInfo.Length;
-    ServerState.ServerInfo.Length = i + 1;
-
-    ServerState.ServerInfo[i].Key = RuleName;
-    ServerState.ServerInfo[i].Value = RuleValue;
-}
-
 defaultproperties
 {
     ServerTickForInfraction=17.0
@@ -5231,11 +5378,10 @@ defaultproperties
     WinLimit=1 // 1 round per map, server admins are able to customize win/rounds to the level in webadmin
     RoundLimit=1
 
-    AccuracyModifier=1.0
-
     MaxTeamDifference=2
     bAutoBalanceTeamsOnDeath=true // if teams become imbalanced it'll force the next player to die to the weaker team
     MaxIdleTime=300
+    ChangeTeamInterval=300
 
     bShowServerIPOnScoreboard=true
     bShowTimeOnScoreboard=true
@@ -5265,7 +5411,7 @@ defaultproperties
     RussianNames(13)="Telly Savalas"
     RussianNames(14)="Audie Murphy"
     RussianNames(15)="George Baker"
-    GermanNames(0)="Günther Liebing"
+    GermanNames(0)="GÃ¼nther Liebing"
     GermanNames(1)="Heinz Werner"
     GermanNames(2)="Rudolf Giesler"
     GermanNames(3)="Seigfried Hauber"
@@ -5274,10 +5420,10 @@ defaultproperties
     GermanNames(6)="Willi Eiken"
     GermanNames(7)="Wolfgang Steyer"
     GermanNames(8)="Rolf Steiner"
-    GermanNames(9)="Anton Müller"
+    GermanNames(9)="Anton MÃ¼ller"
     GermanNames(10)="Klaus Triebig"
-    GermanNames(11)="Hans Grüschke"
-    GermanNames(12)="Wilhelm Krüger"
+    GermanNames(11)="Hans GrÃ¼schke"
+    GermanNames(12)="Wilhelm KrÃ¼ger"
     GermanNames(13)="Herrmann Dietrich"
     GermanNames(14)="Erich Klein"
     GermanNames(15)="Horst Altmann"
@@ -5306,25 +5452,17 @@ defaultproperties
     TeamAIType(1)=class'DH_Engine.DHTeamAI'
     LocalStatsScreenClass=none // stats screen actor isn't used in RO/DH & this stops the class being pointlessly set & replicated in each PRI
 
-    ChangeTeamInterval=300
+    ReinforcementMessagePercentages(0)=0.75
+    ReinforcementMessagePercentages(1)=0.5
+    ReinforcementMessagePercentages(2)=0.25
+    ReinforcementMessagePercentages(3)=0.1
 
-    ReinforcementMessagePercentages(0)=0.9
-    ReinforcementMessagePercentages(1)=0.8
-    ReinforcementMessagePercentages(2)=0.7
-    ReinforcementMessagePercentages(3)=0.6
-    ReinforcementMessagePercentages(4)=0.5
-    ReinforcementMessagePercentages(5)=0.4
-    ReinforcementMessagePercentages(6)=0.3
-    ReinforcementMessagePercentages(7)=0.2
-    ReinforcementMessagePercentages(8)=0.1
-    ReinforcementMessagePercentages(9)=0.05
-
-    ServerLocation="Unknown"
+    ServerLocation="Unspecified"
 
     Begin Object Class=UVersion Name=VersionObject
-        Major=8
+        Major=9
         Minor=3
-        Patch=5
+        Patch=0
         Prerelease=""
     End Object
     Version=VersionObject
@@ -5337,7 +5475,18 @@ defaultproperties
     WeaponLockTimeSecondsMaximum=120
     WeaponLockTimeSecondsFFKillsMultiplier=10
 
-    DisableAllChatThreshold=50
+    bUseIdleKickingThreshold=true
+    EnableIdleKickingThreshold=50
+    DisableAllChatThreshold=32
     bAllowAllChat=true
     bIsAttritionEnabled=true
+    bIsDangerZoneEnabled=true
+
+    bIsSurrenderVoteEnabled=true
+    SurrenderCooldownSeconds=300
+    SurrenderEndRoundDelaySeconds=15
+    SurrenderRoundTimeRequiredSeconds=900
+    SurrenderReinforcementsRequiredPercent=0.50
+    SurrenderNominationsThresholdPercent=0.15
+    SurrenderVotesThresholdPercent=0.5
 }

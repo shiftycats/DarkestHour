@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_Marder3MCannon extends DHVehicleCannon;
@@ -28,8 +28,14 @@ defaultproperties
     ProjectileClass=class'DH_Vehicles.DH_Marder3MCannonShell'
     PrimaryProjectileClass=class'DH_Vehicles.DH_Marder3MCannonShell'
     SecondaryProjectileClass=class'DH_Vehicles.DH_Marder3MCannonShellHE'
+
+    nProjectileDescriptions(0)="PzGr.39"
+    nProjectileDescriptions(1)="Sprgr.Patr.34"
+
     InitialPrimaryAmmo=20
     InitialSecondaryAmmo=6
+
+
     MaxPrimaryAmmo=20
     MaxSecondaryAmmo=7
     SecondarySpread=0.00127

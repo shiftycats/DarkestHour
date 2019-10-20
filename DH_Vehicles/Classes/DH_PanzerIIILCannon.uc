@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_PanzerIIILCannon extends DHVehicleCannon;
@@ -41,8 +41,14 @@ defaultproperties
     PrimaryProjectileClass=class'DH_Vehicles.DH_PanzerIIILCannonShell'
     SecondaryProjectileClass=class'DH_Vehicles.DH_PanzerIIILCannonShellAPCR'
     TertiaryProjectileClass=class'DH_Vehicles.DH_PanzerIIILCannonShellHE'
+
     ProjectileDescriptions(1)="APCR"
     ProjectileDescriptions(2)="HE"
+
+    nProjectileDescriptions(0)="PzGr.39"
+    nProjectileDescriptions(1)="PzGr.40"
+    nProjectileDescriptions(2)="Sprgr.Patr.38"
+
     InitialPrimaryAmmo=40
     InitialSecondaryAmmo=6
     InitialTertiaryAmmo=15

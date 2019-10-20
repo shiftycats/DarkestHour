@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 // Original model by William "Teufelhund" Miller of the AHZ Red Orchestra mod team (heavily adapted here)
@@ -23,4 +23,6 @@ defaultproperties
     ExitPositions(1)=(X=-88.0,Y=-8.0,Z=25.0)
     VehicleMass=8.0
     SupplyCost=1050
+    bCanBeRotated=true
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_ATGun_Rotating'
 }

@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHCannonShellAPDS extends DHCannonShell
@@ -9,7 +9,7 @@ class DHCannonShellAPDS extends DHCannonShell
 defaultproperties
 {
     RoundType=RT_APDS
-    bShatterProne=true
+    bShatterProne=true //set false in individual shell classes for APCR rounds
     SpeedFudgeScale=0.4
     ShellImpactDamage=class'DH_Engine.DHShellSubCalibreImpactDamageType'
     CoronaClass=class'DH_Effects.DHShellTracer_Red'

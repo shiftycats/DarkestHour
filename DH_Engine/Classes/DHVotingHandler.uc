@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHVotingHandler extends xVotingHandler;
@@ -662,7 +662,7 @@ function float GetPlayerVotePower(PlayerController Player)
     }
 
     NumPlayers = G.GetNumPlayers();
-    VotePower = NumPlayers * PatronVoteModifiers[PRI.PatronStatus]; // Set base vote power for Patrons (NumPlayers * Modifier)
+    VotePower = NumPlayers * PatronVoteModifiers[PRI.PatronTier]; // Set base vote power for Patrons (NumPlayers * Modifier)
     VotePower += Clamp(PRI.Score / 1000, 0, PLAYER_VOTE_POWER_MAX); // Add the clamped vote power from Score
 
     // Everyone gets at least one vote
@@ -850,7 +850,7 @@ defaultproperties
 
     PatronVoteModifiers(0)=0.0  //Not Patron
     PatronVoteModifiers(1)=0.15 //Lead
-    PatronVoteModifiers(2)=0.3  //Bronze
-    PatronVoteModifiers(3)=0.5  //Silver
-    PatronVoteModifiers(4)=0.7  //Gold
+    PatronVoteModifiers(2)=0.25  //Bronze
+    PatronVoteModifiers(3)=0.35  //Silver
+    PatronVoteModifiers(4)=0.5  //Gold
 }

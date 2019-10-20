@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_EnfieldNo2Weapon extends DHPistolWeapon;
@@ -14,13 +14,11 @@ defaultproperties
     PickupClass=class'DH_Weapons.DH_EnfieldNo2Pickup'
 
     Mesh=SkeletalMesh'DH_EnfieldNo2_1st.EnfieldNo2'
-    HighDetailOverlay=shader'DH_Weapon_tex.Spec_Maps.EnfieldNo2_s'
+    HighDetailOverlay=Shader'DH_EnfieldNo2_tex.EnfieldNo2.EnfieldNo2S'
     bUseHighDetailOverlayIndex=true
-    HighDetailOverlayIndex=2
+    HighDetailOverlayIndex=1
 
-    DisplayFOV=90.0
-    IronSightDisplayFOV=40.0
-    PlayerIronsightFOV=60.0
+    IronSightDisplayFOV=70.0
 
     MaxNumPrimaryMags=5
     InitialNumPrimaryMags=5
@@ -29,9 +27,12 @@ defaultproperties
     IronIdleEmptyAnim="Iron_idle"
     IronBringUpEmpty="iron_in"
     IronPutDownEmpty="iron_out"
-    SprintStartEmptyAnim="Sprint_Start"
-    SprintLoopEmptyAnim="Sprint_Middle"
-    SprintEndEmptyAnim="Sprint_end"
+    SprintStartAnim="sprint_in"
+    SprintLoopAnim="sprint_idle"
+    SprintEndAnim="sprint_out"
+    SprintStartEmptyAnim="sprint_in"
+    SprintLoopEmptyAnim="sprint_idle"
+    SprintEndEmptyAnim="sprint_out"
     CrawlForwardEmptyAnim="crawlF"
     CrawlBackwardEmptyAnim="crawlB"
     CrawlStartEmptyAnim="crawl_in"
@@ -39,4 +40,10 @@ defaultproperties
     PutDownAnim="putaway"
     SelectEmptyAnim="Draw"
     PutDownEmptyAnim="putaway"
+
+    MagPartialReloadAnim="reload_empty" // There is no alternate reload.
+
+    HandNum=0
+    SleeveNum=3
+    bDiscardMagOnReload=true
 }

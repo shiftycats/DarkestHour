@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHSpawnPoint_SquadRallyPoint extends DHSpawnPointBase
@@ -43,10 +43,24 @@ var DHPlayer InstigatorController;
 // Metrics
 var DHMetricsRallyPoint MetricsObject;
 
+// Objective
+var ROObjective Objective;
+var bool bIsInActiveObjective;
+var bool bIsExposed;
+var int InActiveObjectivePenaltySeconds;
+var int IsExposedPenaltySeconds;
+
+// Attachments
+var class<DHResupplyAttachment>         ResupplyAttachmentClass;
+var DHResupplyAttachment                ResupplyAttachment;
+var DHResupplyAttachment.EResupplyType  ResupplyType;
+var float                               ResupplyAttachmentCollisionRadius;
+var float                               ResupplyAttachmentCollisionHeight;
+
 replication
 {
     reliable if (bNetDirty && Role == ROLE_Authority)
-        SquadIndex, RallyPointIndex, SpawnsRemaining;
+        SquadIndex, RallyPointIndex, SpawnsRemaining, bIsInActiveObjective, bIsExposed;
 }
 
 function Reset()
@@ -57,10 +71,17 @@ function Reset()
 
 function PostBeginPlay()
 {
+    local int i;
+
     super.PostBeginPlay();
 
     if (Role == ROLE_Authority)
     {
+        if (MapIconAttachment != none)
+        {
+            MapIconAttachment.IsInDangerZone = IsExposed;
+        }
+
         SRI = DarkestHourGame(Level.Game).SquadReplicationInfo;
 
         CreatedTimeSeconds = Level.TimeSeconds;
@@ -71,6 +92,21 @@ function PostBeginPlay()
         }
 
         PlaySound(CreationSound, SLOT_None, 4.0,, 60.0,, true);
+
+        if (GRI != none)
+        {
+            for (i = 0; i < arraycount(GRI.DHObjectives); ++i)
+            {
+                if (GRI.DHObjectives[i] != none && GRI.DHObjectives[i].WithinArea(self))
+                {
+                    // We'll make a bold assumption that it's not really possible
+                    // to be in multiple objectives at once and just stop at one.
+                    Objective = GRI.DHObjectives[i];
+
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -165,6 +201,9 @@ function Timer()
 
         Destroy();
     }
+
+    // Update the "in active objective" status.
+    bIsInActiveObjective = Objective != none && Objective.IsActive();
 }
 
 state Active
@@ -180,6 +219,23 @@ state Active
         if (MetricsObject != none)
         {
             MetricsObject.IsEstablished = true;
+        }
+
+        OnUpdated();
+
+        ResupplyAttachment = Spawn(ResupplyAttachmentClass, self);
+
+        if (ResupplyAttachment != none)
+        {
+            ResupplyAttachment.SetResupplyType(ResupplyType);
+            ResupplyAttachment.SetTeamIndex(GetTeamIndex());
+            ResupplyAttachment.SetSquadIndex(SquadIndex);
+            ResupplyAttachment.SetCollisionSize(ResupplyAttachmentCollisionRadius, ResupplyAttachmentCollisionHeight);
+            ResupplyAttachment.SetBase(self);
+        }
+        else
+        {
+            Warn("Failed to spawn resupply attachment!");
         }
     }
 }
@@ -205,6 +261,31 @@ function SetIsActive(bool bIsActive)
     {
         SRI.OnSquadRallyPointActivated(self);
     }
+}
+
+function OnUpdated()
+{
+    UpdateExposedStatus();
+
+    if (SRI != none)
+    {
+        SRI.OnSquadRallyPointUpdated(self);
+    }
+}
+
+function UpdateExposedStatus()
+{
+    bIsExposed = GRI != none && GRI.IsInDangerZone(Location.X, Location.Y, GetTeamIndex());
+
+    if (MapIconAttachment != none)
+    {
+        MapIconAttachment.Updated();
+    }
+}
+
+simulated function bool IsExposed()
+{
+    return bIsExposed;
 }
 
 simulated function bool CanSpawnWithParameters(DHGameReplicationInfo GRI, int TeamIndex, int RoleIndex, int SquadIndex, int VehiclePoolIndex, optional bool bSkipTimeCheck)
@@ -277,11 +358,6 @@ function OnSpawnKill(Pawn VictimPawn, Controller KillerController)
 
         Destroy();
     }
-}
-
-simulated function string GetMapStyleName()
-{
-    return "DHRallyPointButtonStyle";
 }
 
 function UpdateAppearance()
@@ -376,6 +452,16 @@ simulated function int GetSpawnTimePenalty()
         SpawnTimePenalty += EncroachmentSpawnTimePenalty;
     }
 
+    if (bIsInActiveObjective)
+    {
+        SpawnTimePenalty += InActiveObjectivePenaltySeconds;
+    }
+
+    if (bIsExposed)
+    {
+        SpawnTimePenalty += IsExposedPenaltySeconds;
+    }
+
     return SpawnTimePenalty;
 }
 
@@ -442,22 +528,35 @@ function AwardScoreOnEstablishment()
 
 function Destroyed()
 {
+    if (SRI != none)
+    {
+        SRI.OnSquadRallyPointDestroyed(self);
+    }
+
     super.Destroyed();
 
     if (MetricsObject != none)
     {
         MetricsObject.DestroyedAt = class'DateTime'.static.Now(self);
     }
+
+    if (ResupplyAttachment != none)
+    {
+        ResupplyAttachment.Destroy();
+    }
 }
 
 defaultproperties
 {
+    SpawnPointStyle="DHRallyPointButtonStyle"
+
     StaticMesh=StaticMesh'DH_Construction_stc.Backpacks.USA_backpack'
     DrawType=DT_StaticMesh
     TeamIndex=-1
     SquadIndex=-1
     RallyPointIndex=-1
     CreationSound=Sound'Inf_Player.Gibimpact.Gibimpact'
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_SpawnPoint_SquadRallyPoint'
 
     bCanBeEncroachedUpon=true
     EncroachmentRadiusInMeters=50
@@ -468,6 +567,9 @@ defaultproperties
     EncroachmentEnemyCountMin=3
     EncroachmentPenaltyForgivenessPerSecond=5
     bCanEncroachmentOverrun=true
+
+    InActiveObjectivePenaltySeconds=15
+    IsExposedPenaltySeconds=15
 
     OverrunRadiusInMeters=15
     EstablishmentRadiusInMeters=25
@@ -492,5 +594,10 @@ defaultproperties
     bCollideWorld=false
     bBlockActors=true
     bBlockKarma=false
-}
 
+    // Attachments
+    ResupplyAttachmentClass=class'DHResupplyAttachment'
+    ResupplyType=RT_Mortars
+    ResupplyAttachmentCollisionRadius=300
+    ResupplyAttachmentCollisionHeight=100
+}

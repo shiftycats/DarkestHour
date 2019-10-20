@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_HigginsBoat extends DHBoatVehicle;
@@ -311,6 +311,7 @@ defaultproperties
     BinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_7x50Allied'
     DriverAttachmentBone="driver_player"
     DrivePos=(X=0.0,Y=0.0,Z=10.0)
+    FPCamPos=(X=0.0,Y=0.0,Z=6.0) //lift the view a bit higher than "camera_driver" which is low
     DriveAnim="stand_idlehip_satchel"
 
     // Movement
@@ -396,6 +397,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(Z=-6.0)
         WheelRadius=30.0
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_HigginsBoat.LFWheel'
     Begin Object Class=SVehicleWheel Name=RFWheel
@@ -414,6 +416,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(Z=-6.0)
         WheelRadius=30.0
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_HigginsBoat.LRWheel'
     Begin Object Class=SVehicleWheel Name=RRWheel

@@ -1,13 +1,9 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_Flak88Gun extends DHATGun;
-
-#exec OBJ LOAD FILE=..\Animations\DH_Flak88_anm.ukx
-#exec OBJ LOAD FILE=..\Textures\MilitaryAxisSMT.utx
-#exec OBJ LOAD FILE=..\StaticMeshes\MilitaryAxisSM.usx
 
 defaultproperties
 {
@@ -24,6 +20,7 @@ defaultproperties
     VehicleMass=20.0
     SupplyCost=2100
     ConstructionPlacementOffset=(Z=0)
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_ATGun_Static'
 
     Begin Object Class=KarmaParamsRBFull Name=KParams0
         KInertiaTensor(0)=1.0

@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_LocustTank extends DHArmoredVehicle;
@@ -135,7 +135,6 @@ defaultproperties
     DamagedTrackStaticMeshRight=StaticMesh'DH_allies_vehicles_stc2.Locust.Locust_DamagedTrack_right'
     DamagedEffectScale=0.8
     DamagedEffectOffset=(X=-60.0,Y=13.5,Z=30.0)
-    HullFireChance=0.45
     FireAttachBone="body"
     FireEffectOffset=(X=60.0,Y=-30.0,Z=50.0)
     DestroyedVehicleMesh=StaticMesh'DH_allies_vehicles_stc2.Locust.Locust_dest' // TODO: get a proper destroyed mesh made & a new destroyed overlay texture shaped for the treads
@@ -210,6 +209,7 @@ defaultproperties
         BoneName="steer_wheel_LF"
         BoneRollAxis=AXIS_Y
         WheelRadius=26.0
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_LocustTank.LF_Steering'
 
@@ -228,6 +228,7 @@ defaultproperties
         BoneName="steer_wheel_LR"
         BoneRollAxis=AXIS_Y
         WheelRadius=26.0
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_LocustTank.LR_Steering'
 
@@ -245,6 +246,7 @@ defaultproperties
         BoneName="drive_wheel_L"
         BoneRollAxis=AXIS_Y
         WheelRadius=26.0
+        bLeftTrack=true
     End Object
     Wheels(4)=SVehicleWheel'DH_Vehicles.DH_LocustTank.Left_Drive_Wheel'
 

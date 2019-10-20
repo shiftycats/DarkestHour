@@ -1,11 +1,9 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_M45QuadmountGun extends DHATGun;
-
-#exec OBJ LOAD FILE=..\Animations\DH_M45_anm.ukx
 
 defaultproperties
 {
@@ -22,4 +20,5 @@ defaultproperties
     ExitPositions(1)=(X=-100.0,Y=40.0,Z=50.0)  // right of seat
     ExitPositions(2)=(X=-100.0,Y=-40.0,Z=50.0) // left
     SupplyCost=1050
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_ATGun_StaticAA'
 }

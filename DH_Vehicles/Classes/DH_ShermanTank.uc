@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_ShermanTank extends DHArmoredVehicle; // M4A1 75mm variant (without wet stowage)
@@ -65,7 +65,6 @@ defaultproperties
     DamagedTrackStaticMeshRight=StaticMesh'DH_allies_vehicles_stc.Sherman.M4A1_DamagedTrack_right'
     DamagedEffectScale=0.9
     DamagedEffectOffset=(X=-120.0,Y=0.0,Z=95.0)
-    HullFireChance=0.45
     DestroyedVehicleMesh=StaticMesh'DH_allies_vehicles_stc.Sherman.Sherman_Dest'
 
     // Exit
@@ -149,6 +148,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=20.0,Z=12.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_ShermanTank.LF_Steering'
     Begin Object Class=SVehicleWheel Name=RF_Steering
@@ -167,6 +167,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=-30.0,Z=12.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_ShermanTank.LR_Steering'
     Begin Object Class=SVehicleWheel Name=RR_Steering
@@ -184,6 +185,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(Z=12.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(4)=SVehicleWheel'DH_Vehicles.DH_ShermanTank.Left_Drive_Wheel'
     Begin Object Class=SVehicleWheel Name=Right_Drive_Wheel

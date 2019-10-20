@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_M1GarandWeapon extends DHSemiAutoWeapon;
@@ -45,7 +45,7 @@ defaultproperties
     bUseHighDetailOverlayIndex=true
     HighDetailOverlayIndex=2
 
-    IronSightDisplayFOV=20.0
+    IronSightDisplayFOV=25.0
     FreeAimRotationSpeed=7.5
 
     MaxNumPrimaryMags=11

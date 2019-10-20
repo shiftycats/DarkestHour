@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_StuartCannon extends DHVehicleCannon;
@@ -35,7 +35,13 @@ defaultproperties
     PrimaryProjectileClass=class'DH_Vehicles.DH_StuartCannonShell'
     SecondaryProjectileClass=class'DH_Vehicles.DH_StuartCannonShellHE'
     TertiaryProjectileClass=class'DH_Engine.DHCannonShellCanister'
+
     ProjectileDescriptions(2)="Canister"
+
+    nProjectileDescriptions(0)="M51B1 APC"
+    nProjectileDescriptions(1)="M63 HE-T"
+    nProjectileDescriptions(2)="M2 Canister"
+
     InitialPrimaryAmmo=60
     InitialSecondaryAmmo=30
     InitialTertiaryAmmo=15

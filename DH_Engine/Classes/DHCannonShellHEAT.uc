@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHCannonShellHEAT extends DHCannonShell
@@ -64,17 +64,16 @@ simulated function HitWall(vector HitNormal, Actor Wall)
     }
 
     // Check & record whether we hit a world object we can penetrate (added in HEAT)
-    if ((Wall.bStatic || Wall.bWorldGeometry) && DHConstruction(Wall) == none && RODestroyableStaticMesh(Wall) == none && Mover(Wall) == none)
+    if ((Wall.bStatic || Wall.bWorldGeometry) && !Wall.bCanBeDamaged)
     {
         bHitWorldObject = true;
     }
 
     if (Role == ROLE_Authority)
     {
-//      if ((!Wall.bStatic && !Wall.bWorldGeometry) || RODestroyableStaticMesh(Wall) != none || Mover(Wall) != none)
-        if (!bHitWorldObject) // using this instead of above, as as we've already done this check earlier on
+        if (!bHitWorldObject)
         {
-            if (SavedHitActor != none || DHConstruction(Wall) != none || RODestroyableStaticMesh(Wall) != none || Mover(Wall) != none)
+            if (SavedHitActor != none || Wall.bCanBeDamaged)
             {
                 if (ShouldDrawDebugLines())
                 {
@@ -287,6 +286,10 @@ defaultproperties
     bExplodesOnHittingWater=true
     bAlwaysDoShakeEffect=true
     ShellImpactDamage=class'DH_Engine.DHShellHEATImpactDamageType'
+
+    HullFireChance=0.65
+    EngineFireChance=0.85
+
     ExplosionSound(0)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode01'
     ExplosionSound(1)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode02'
     ExplosionSound(2)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode03'

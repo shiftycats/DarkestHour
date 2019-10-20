@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHArmoredVehicle extends DHVehicle
@@ -75,14 +75,12 @@ var     class<VehicleDamagedEffect> FireEffectClass;
 var     VehicleDamagedEffect        DriverHatchFireEffect;
 var     name        FireAttachBone;
 var     vector      FireEffectOffset;
-var     float       HullFireChance;
-var     float       HullFireHEATChance;
+var     float       HullFirePercent; //helper variable
 var     bool        bOnFire;               // the vehicle itself is on fire
 var     float       HullFireDamagePer2Secs;
 var     float       PlayerFireDamagePer2Secs;
 var     float       NextHullFireDamageTime;
-var     float       EngineFireChance;
-var     float       EngineFireHEATChance;
+var     float       EngineFirePercent; //helper variable
 var     bool        bEngineOnFire;
 var     float       EngineFireDamagePer3Secs;
 var     float       NextEngineFireDamageTime;
@@ -752,13 +750,8 @@ simulated function bool CanPlayerLockVehicle(Vehicle PlayersVehiclePosition)
         LI = PC.GetLevelInfo();
     }
 
-    // Not if the map has been set to disallow tank locking
-    if (LI != none && LI.bDisableTankLocking)
-    {
-        FailMessageNumber = 24; // this map doesn't allow vehicles to be locked
-    }
     // Not if this armored vehicle isn't for tank crew only (very unlikely for an armored vehicle, but possible - perhaps for a scenario map)
-    else if (!bMustBeTankCommander)
+    if (!bMustBeTankCommander)
     {
         FailMessageNumber = 25; // can't lock vehicle as it can be driven by non-tank crew roles
     }
@@ -847,7 +840,7 @@ function StartHullFire(Pawn InstigatedBy)
 
     if (bDebuggingText)
     {
-        Level.Game.Broadcast(self, "Vehicle set on fire");
+        Log("Vehicle set on fire");
     }
 
     // Record the player responsible for starting fire, so score can be awarded later if results in a kill
@@ -882,7 +875,7 @@ function StartEngineFire(Pawn InstigatedBy)
 
     if (bDebuggingText)
     {
-        Level.Game.Broadcast(self, "Engine set on fire");
+        Log("Engine set on fire");
     }
 
     // Record the player responsible for starting fire, so score can be awarded later if results in a kill
@@ -1145,7 +1138,7 @@ simulated function bool ShouldPenetrate(DHAntiVehicleProjectile P, vector HitLoc
 
         if ((bDebugPenetration || class'DH_LevelInfo'.static.DHDebugMode()) && Role == ROLE_Authority)
         {
-            Level.Game.Broadcast(self, "ERROR: hull angles not set up correctly for" @ VehicleNameString @ "(took hit from" @ HitLocationAngle @ "degrees & couldn't resolve which side that was");
+            Log("ERROR: hull angles not set up correctly for" @ VehicleNameString @ "(took hit from" @ HitLocationAngle @ "degrees & couldn't resolve which side that was");
         }
 
         ResetTakeDamageVariables();
@@ -1173,7 +1166,7 @@ simulated function bool ShouldPenetrate(DHAntiVehicleProjectile P, vector HitLoc
 
             if ((bDebugPenetration || class'DH_LevelInfo'.static.DHDebugMode()) && Role == ROLE_Authority)
             {
-                Level.Game.Broadcast(self, "Hit detection bug - switching from" @ HitSide @ "to" @ OppositeSide
+                Log("Hit detection bug - switching from" @ HitSide @ "to" @ OppositeSide
                     @ "as angle of incidence to original side was" @ int(Round(AngleOfIncidence)) @ "degrees");
             }
 
@@ -1204,7 +1197,7 @@ simulated function bool ShouldPenetrate(DHAntiVehicleProjectile P, vector HitLoc
 
             if (bDebugPenetration && Role == ROLE_Authority)
             {
-                Level.Game.Broadcast(self, "Hit hull" @ HitSide $ ": no penetration as extra side armor stops HEAT projectiles");
+                Log("Hit hull" @ HitSide $ ": no penetration as extra side armor stops HEAT projectiles");
             }
 
             ResetTakeDamageVariables();
@@ -1268,6 +1261,8 @@ simulated function bool ShouldPenetrate(DHAntiVehicleProjectile P, vector HitLoc
     bHEATPenetration = P.RoundType == RT_HEAT && bProjectilePenetrated;
     bRearHullPenetration = bRearHit && bProjectilePenetrated;
     bTurretPenetration = false;
+    HullFirePercent = P.HullFireChance;
+    EngineFirePercent = P.EngineFireChance;
 
     // Debugging options
     if ((bLogDebugPenetration || bDebugPenetration) && P.NumDeflections == 0)
@@ -1289,8 +1284,8 @@ simulated function bool ShouldPenetrate(DHAntiVehicleProjectile P, vector HitLoc
         {
             if (Role == ROLE_Authority)
             {
-                Level.Game.Broadcast(self, DebugString1);
-                Level.Game.Broadcast(self, DebugString2);
+                Log(DebugString1);
+                Log(DebugString2);
             }
 
             if (Level.NetMode != NM_DedicatedServer)
@@ -1559,6 +1554,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
 
     if (WepDamageType != none)
     {
+
         if (bIsApc)
         {
             DamageModifier = WepDamageType.default.APCDamageModifier;
@@ -1607,7 +1603,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                 {
                     if (bDebuggingText)
                     {
-                        Level.Game.Broadcast(self, "Hit vehicle engine");
+                        Log("Hit vehicle engine");
                     }
 
                     DamageEngine(Damage, InstigatedBy, HitLocation, Momentum, DamageType);
@@ -1628,10 +1624,10 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Hit vehicle ammo store - exploded");
+                            Log("Hit vehicle ammo store - exploded");
                         }
 
-                        Damage *= Health;
+                        Damage *= Health; //obliterate vehicle
                         bAmmoDetonation = true;
                         break;
                     }
@@ -1640,11 +1636,11 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Hit vehicle ammo store but did not explode");
+                            Log("Hit vehicle ammo store but did not explode");
                         }
 
-                        HullFireChance = FMax(0.75, HullFireChance);
-                        HullFireHEATChance = FMax(0.90, HullFireHEATChance);
+                        HullFirePercent = FMax(0.75, HullFirePercent);
+                        //HullFireHEATChance = FMax(0.90, HullFireHEATChance);
                     }
                 }
             }
@@ -1680,7 +1676,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Hit gunsight optics");
+                            Log("Hit gunsight optics");
                         }
 
                         CannonPawn.DamageCannonOverlay();
@@ -1692,7 +1688,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                         {
                             if (bDebuggingText)
                             {
-                                Level.Game.Broadcast(self, "Hit gun/turret traverse");
+                                Log("Hit gun/turret traverse");
                             }
 
                             CannonPawn.bTurretRingDamaged = true;
@@ -1702,7 +1698,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                         {
                             if (bDebuggingText)
                             {
-                                Level.Game.Broadcast(self, "Hit gun pivot");
+                                Log("Hit gun pivot");
                             }
 
                             CannonPawn.bGunPivotDamaged = true;
@@ -1722,13 +1718,13 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                 {
                     if (bTurretPenetration)
                     {
-                        HullChanceModifier = 0.5;   // half usual chance of damage to things in the hull
+                        HullChanceModifier = 0.25;   // 25% usual chance of damage to things in the hull
                         TurretChanceModifier = 1.0;
                     }
                     else
                     {
                         HullChanceModifier = 1.0;
-                        TurretChanceModifier = 0.5; // half usual chance of damage to things in the turret
+                        TurretChanceModifier = 0.35; // 35% usual chance of damage to things in the turret
                     }
                 }
                 else // normal chance of damage to everything in vehicles without a turret (e.g. casemate-style tank destroyers)
@@ -1744,7 +1740,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Commander killed by shrapnel");
+                            Log("Commander killed by shrapnel");
                         }
 
                         CannonPawn.Driver.TakeDamage(150, InstigatedBy, Location, vect(0.0, 0.0, 0.0), DamageType);
@@ -1755,7 +1751,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Gunsight optics destroyed by shrapnel");
+                            Log("Gunsight optics destroyed by shrapnel");
                         }
 
                         CannonPawn.DamageCannonOverlay();
@@ -1766,7 +1762,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Gun pivot damaged by shrapnel");
+                            Log("Gun pivot damaged by shrapnel");
                         }
 
                         CannonPawn.bGunPivotDamaged = true;
@@ -1777,7 +1773,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                     {
                         if (bDebuggingText)
                         {
-                            Level.Game.Broadcast(self, "Gun/turret traverse damaged by shrapnel");
+                            Log("Gun/turret traverse damaged by shrapnel");
                         }
 
                         CannonPawn.bTurretRingDamaged = true;
@@ -1785,12 +1781,12 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                 }
             }
 
-            // Random chance of shrapnel detonating turret ammo & destroying the vehicle
+            // Random chance of shrapnel detonating turret ammo & destroying the vehicle - this should really be based on if turret stores ammo or not
             if (FRand() < (float(Damage) / TurretDetonationThreshold * TurretChanceModifier))
             {
                 if (bDebuggingText)
                 {
-                    Level.Game.Broadcast(self, "Turret ammo detonated by shrapnel");
+                    Log("Turret ammo detonated by shrapnel");
                 }
 
                 Damage *= Health;
@@ -1804,7 +1800,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                 {
                     if (bDebuggingText)
                     {
-                        Level.Game.Broadcast(self, "Driver killed by shrapnel");
+                        Log("Driver killed by shrapnel");
                     }
 
                     Driver.TakeDamage(150, InstigatedBy, Location, vect(0.0, 0.0, 0.0), DamageType);
@@ -1815,7 +1811,7 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
                 {
                     if (bDebuggingText)
                     {
-                        Level.Game.Broadcast(self, "Hull gunner killed by shrapnel");
+                        Log("Hull gunner killed by shrapnel");
                     }
 
                     MGun.WeaponPawn.Driver.TakeDamage(150, InstigatedBy, Location, vect(0.0, 0.0, 0.0), DamageType);
@@ -1827,28 +1823,36 @@ function TakeDamage(int Damage, Pawn InstigatedBy, vector HitLocation, vector Mo
         if (bHasTreads && TreadDamageMod >= TreadDamageThreshold && !bTurretPenetration && !bRearHullPenetration)
         {
             CheckTreadDamage(HitLocation, Momentum);
+
+            Damage *= 0.35; // reduce overall damage to vehicle itself if tread area hit (wheels and bottom treads usually below critical areas)
         }
+    }
+
+    if (bDebuggingText)
+    {
+        Log("Damaging vehicle with:" @ Damage);
     }
 
     // Call the Super from Vehicle (skip over others)
     super(Vehicle).TakeDamage(Damage, InstigatedBy, HitLocation, Momentum, DamageType);
 
-    // Vehicle is still alive, so check for possibility of a fire breaking out
+    // Vehicle is still alive, so check for possibility of a fire breaking out in hull
     if (Health > 0)
     {
         if (bProjectilePenetrated && !bEngineStoppedProjectile && !bOnFire)
         {
             // Random chance of penetration causing a hull fire // TODO: relate probability to damage, as currently even tiny damage has a high chance of starting a fire
-            if ((bHEATPenetration && FRand() < HullFireHEATChance) || (!bHEATPenetration && FRand() < HullFireChance))
+            if (FRand() < HullFirePercent)
             {
                 StartHullFire(InstigatedBy);
             }
             // If we didn't start a fire & this is the 1st time a projectile has penetrated, increase the chance of causing a hull fire for any future penetrations
+            // WHY? Each penetration should be a fresh "normal" chance to randomly start a fire -- leaving this for now (Shurek)
             else if (bFirstPenetratingHit)
             {
                 bFirstPenetratingHit = false;
-                HullFireChance = FMax(0.75, HullFireChance);
-                HullFireHEATChance = FMax(0.90, HullFireHEATChance);
+                HullFirePercent = FMax(0.75, HullFirePercent);
+                //HullFireHEATChance = FMax(0.90, HullFireHEATChance);
             }
         }
 
@@ -1871,17 +1875,24 @@ function ResetTakeDamageVariables()
     bTurretPenetration = false;
     bRearHullPenetration = false;
     bHEATPenetration = false;
+    HullFirePercent = 0.0;
 }
 
 // Modified to add random chance of engine fire breaking out
 function DamageEngine(int Damage, Pawn InstigatedBy, vector HitLocation, vector Momentum, class<DamageType> DamageType)
 {
+
     // Apply new damage
     if (EngineHealth > 0)
     {
         if (DamageType != VehicleBurningDamType)
         {
             Damage = Level.Game.ReduceDamage(Damage, self, InstigatedBy, HitLocation, Momentum, DamageType);
+        }
+
+        if (bDebuggingText)
+        {
+            Log("Damaging engine with a damage of:" @ Damage);
         }
 
         EngineHealth -= Damage;
@@ -1892,7 +1903,7 @@ function DamageEngine(int Damage, Pawn InstigatedBy, vector HitLocation, vector 
     {
         if (bDebuggingText)
         {
-            Level.Game.Broadcast(self, "Engine is dead");
+            Log("Engine is dead");
         }
 
         if (!bEngineOff)
@@ -1906,11 +1917,11 @@ function DamageEngine(int Damage, Pawn InstigatedBy, vector HitLocation, vector 
     // Or if engine still alive, a random chance of engine fire breaking out // TODO: relate probability to damage, as currently even tiny damage has a high chance of starting a fire
     else if (DamageType != VehicleBurningDamType && !bEngineOnFire && Damage > 0 && Health > 0)
     {
-        if ((bHEATPenetration && FRand() < EngineFireHEATChance) || (!bHEATPenetration && FRand() < EngineFireChance))
+        if (FRand() < EngineFirePercent)
         {
             if (bDebuggingText)
             {
-                Level.Game.Broadcast(self, "Engine fire started");
+                Log("Engine fire started");
             }
 
             StartEngineFire(InstigatedBy);
@@ -1960,7 +1971,7 @@ function TakeFireDamage()
         {
             if (bDebuggingText)
             {
-                Level.Game.Broadcast(self, "Fire detonated ammo");
+                Log("Fire detonated ammo");
             }
 
             TakeDamage(Health, PawnWhoSetOnFire, vect(0.0, 0.0, 0.0), vect(0.0, 0.0, 0.0), VehicleBurningDamType);
@@ -2263,6 +2274,8 @@ defaultproperties
     EngineRestartFailChance=0.1
     MinRunOverSpeed=83.82 // decreased to 5 kph, as players should be easier to run over with armored vehicles
     PointValue=1000
+    WeaponLockTimeForTK=30
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_Vehicle_Armored'
 
     // Driver & positions
     bMustBeTankCommander=true
@@ -2292,10 +2305,6 @@ defaultproperties
     AmmoIgnitionProbability=0.75
 
     // Vehicle fires
-    HullFireChance=0.25
-    HullFireHEATChance=0.5
-    EngineFireChance=0.5
-    EngineFireHEATChance=0.85
     EngineToHullFireChance=0.05
     PlayerFireDamagePer2Secs=15.0
     FireDetonationChance=0.07
@@ -2316,7 +2325,7 @@ defaultproperties
     // Vehicle destruction
     DestructionEffectClass=class'ROEffects.ROVehicleDestroyedEmitter'
     DestructionEffectLowClass=class'ROEffects.ROVehicleDestroyedEmitter_simple'
-    DisintegrationEffectClass=class'ROEffects.ROVehicleObliteratedEmitter'
+    DisintegrationEffectClass=class'DH_Effects.DHVehicleObliteratedEmitter'
     DisintegrationEffectLowClass=class'ROEffects.ROVehicleObliteratedEmitter_simple'
     DisintegrationHealth=-1000.0 // unlike other vehicles, an armoured vehicle disintegrates by default if health falls bellow this threshold, due to explosive ammo
     ExplosionDamage=200.0

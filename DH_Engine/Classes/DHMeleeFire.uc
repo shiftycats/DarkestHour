@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHMeleeFire extends DHWeaponFire
@@ -449,8 +449,8 @@ defaultproperties
 
     DamageMin=30
     DamageMax=40
-    BayonetDamageMin=38
-    BayonetDamageMax=52
+    BayonetDamageMin=75
+    BayonetDamageMax=85
     VulnerableDamageFactor=3.0
 
     PlayerBashSound=SoundGroup'Inf_Weapons_Foley.melee.butt_hit'

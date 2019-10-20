@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_PanzerIIILTank extends DHArmoredVehicle;
@@ -144,6 +144,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=40.0,Y=-5.0,Z=7.0)
         WheelRadius=30.0
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_PanzerIIILTank.LF_Steering'
     Begin Object Class=SVehicleWheel Name=RF_Steering
@@ -162,6 +163,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=-5.0,Y=-5.0,Z=7.0)
         WheelRadius=30.0
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_PanzerIIILTank.LR_Steering'
     Begin Object Class=SVehicleWheel Name=RR_Steering
@@ -179,6 +181,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=10.0,Z=7.0)
         WheelRadius=30.0
+        bLeftTrack=true
     End Object
     Wheels(4)=SVehicleWheel'DH_Vehicles.DH_PanzerIIILTank.Left_Drive_Wheel'
     Begin Object Class=SVehicleWheel Name=Right_Drive_Wheel

@@ -1,11 +1,11 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHConstruction_GrenadeCrate extends DHConstruction_InventorySpawner;
 
-static function class<DHInventorySpawner> GetSpawnerClass(DHConstruction.Context Context)
+static function class<DHInventorySpawner> GetSpawnerClass(DHActorProxy.Context Context)
 {
     switch (Context.TeamIndex)
     {

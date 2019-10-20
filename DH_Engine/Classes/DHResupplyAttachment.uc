@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHResupplyAttachment extends RODummyAttachment
@@ -15,22 +15,48 @@ enum EResupplyType
 };
 
 var     private int     TeamIndex;      // Team this volume resupplies
-var     EResupplyType   ResupplyType;   //Who this volume will resupply
+var     private int     SquadIndex;     // Squad this volume resupplies. When
+                                        // set, vehicles are only resupplied
+                                        // when controlled by a squad memeber.
+var     EResupplyType   ResupplyType;   // Who this volume will resupply
 var     array<Pawn>     ResupplyActors;
 var     float           UpdateTime;     // How often this thing needs to do it's business
+
+var     class<DHMapIconAttachment> MapIconAttachmentClass;
+var     DHMapIconAttachment        MapIconAttachment;
 
 delegate OnPawnResupplied(Pawn P);            // Called for every pawn that is resupplied
 
 function OnTeamIndexChanged();
 
-simulated function PostBeginPlay()
+function PostBeginPlay()
 {
     super(Actor).PostBeginPlay();
 
     SetTimer(1.0, true);
 }
 
-function int GetTeamIndex()
+final function AttachMapIcon()
+{
+    if (MapIconAttachmentClass != none)
+    {
+        MapIconAttachment = Spawn(MapIconAttachmentClass, self);
+
+        if (MapIconAttachment != none)
+        {
+            MapIconAttachment.SetBase(self);
+            MapIconAttachment.Setup();
+            DHMapIconAttachment_Resupply(MapIconAttachment).SetResupplyType(ResupplyType);
+            MapIconAttachment.SetTeamIndex(TeamIndex);
+        }
+        else
+        {
+            MapIconAttachmentClass.static.OnError(ERROR_SpawnFailed);
+        }
+    }
+}
+
+simulated function int GetTeamIndex()
 {
     return TeamIndex;
 }
@@ -39,7 +65,81 @@ final function SetTeamIndex(int TeamIndex)
 {
     self.TeamIndex = TeamIndex;
 
+    if (MapIconAttachment != none)
+    {
+        MapIconAttachment.SetTeamIndex(TeamIndex);
+    }
+
     OnTeamIndexChanged();
+}
+
+simulated function int GetSquadIndex()
+{
+    return SquadIndex;
+}
+
+final function SetSquadIndex(int SquadIndex)
+{
+    self.SquadIndex = SquadIndex;
+}
+
+final function SetResupplyType(EResupplyType ResupplyType)
+{
+    self.ResupplyType = ResupplyType;
+
+    if (MapIconAttachment != none)
+    {
+        DHMapIconAttachment_Resupply(MapIconAttachment).SetResupplyType(ResupplyType);
+    }
+}
+
+function bool CanResupplyType(EResupplyType T)
+{
+    switch (T)
+    {
+        case RT_Players:
+            return ResupplyType == RT_Players || ResupplyType == RT_All;
+        case RT_Vehicles:
+            return ResupplyType == RT_Vehicles || ResupplyType == RT_All;
+        case RT_Mortars:
+            return ResupplyType == RT_Players || ResupplyType == RT_Mortars || ResupplyType == RT_All;
+        default:
+            return ResupplyType == RT_All;
+    }
+}
+
+function bool CanResupplyPawn(Pawn P)
+{
+    local DHPlayerReplicationInfo PRI;
+    local ROVehicle ROV;
+    local int i;
+
+    if (P != none && (TeamIndex == NEUTRAL_TEAM_INDEX || P.GetTeamNum() == TeamIndex))
+    {
+        if (SquadIndex >= 0)
+        {
+            ROV = ROVehicle(P);
+
+            if (ROV != none)
+            {
+                // Check if any of the weapons are manned by a squad member.
+                for (i = 0; i < ROV.WeaponPawns.Length; ++i)
+                {
+                    PRI = DHPlayerReplicationInfo(ROV.WeaponPawns[i].PlayerReplicationInfo);
+
+                    if (PRI != none && PRI.SquadIndex == SquadIndex)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            PRI = DHPlayerReplicationInfo(P.PlayerReplicationInfo);
+            return PRI != none && PRI.SquadIndex == SquadIndex;
+        }
+
+        return true;
+    }
 }
 
 function ProcessActorLeave()
@@ -100,24 +200,29 @@ function Timer()
     foreach RadiusActors(class'Pawn', recvr, CollisionRadius)
     {
         // This stops us from the vehicle resupplying itself.
-        if (Base != none && Base == P)
+        if (Base != none && Base == recvr)
         {
             continue;
         }
 
-        if (TeamIndex == NEUTRAL_TEAM_INDEX || recvr.GetTeamNum() == TeamIndex)
+        if (CanResupplyPawn(recvr))
         {
             bResupplied = false;
             P = DHPawn(recvr);
             V = Vehicle(recvr);
 
-            if (P != none && (ResupplyType == RT_Players || ResupplyType == RT_All))
+            if (P != none)
+            {
+                RI = P.GetRoleInfo();
+            }
+
+            if (P != none && (CanResupplyType(RT_Players) || (CanResupplyType(RT_Mortars) && RI != none && RI.bCanUseMortars)))
             {
                 //Add him into our resupply list.
                 ResupplyActors[ResupplyActors.Length] = P;
                 P.bTouchingResupply = true;
             }
-            else if (V != none && V != Base && (ResupplyType == RT_Vehicles || ResupplyType == RT_All))
+            else if (V != none && V != Base && (CanResupplyType(RT_Vehicles) || (CanResupplyType(RT_Mortars) && V.IsA('DHMortarVehicleWeaponPawn'))))
             {
                 ResupplyActors[ResupplyActors.Length] = V;
                 V.bTouchingResupply = true;
@@ -125,12 +230,7 @@ function Timer()
 
             if (Level.TimeSeconds - recvr.LastResupplyTime >= UpdateTime)
             {
-                if (P != none)
-                {
-                    RI = P.GetRoleInfo();
-                }
-
-                if (P != none && (ResupplyType == RT_Players || ResupplyType == RT_All))
+                if (P != none && CanResupplyType(RT_Players))
                 {
                     //Resupply weapons
                     for (recvr_inv = P.Inventory; recvr_inv != none; recvr_inv = recvr_inv.Inventory)
@@ -155,7 +255,7 @@ function Timer()
                     }
                 }
 
-                if (V != none && (ResupplyType == RT_Vehicles || ResupplyType == RT_All) && !V.IsA('DHMortarVehicle'))
+                if (V != none && CanResupplyType(RT_Vehicles) && !V.IsA('DHMortarVehicle'))
                 {
                     // Resupply vehicles
                     if (V.ResupplyAmmo())
@@ -165,7 +265,7 @@ function Timer()
                 }
 
                 //Mortar specific resupplying.
-                if (ResupplyType == RT_Players || ResupplyType == RT_Mortars || ResupplyType == RT_All)
+                if (CanResupplyType(RT_Mortars))
                 {
                     // Resupply player carrying a mortar
                     if (P != none)
@@ -175,7 +275,7 @@ function Timer()
                             bResupplied = true;
                         }
 
-                        if (P.bUsedCarriedMGAmmo && P.bCarriesExtraAmmo)
+                        if (CanResupplyType(RT_Players) && P.bUsedCarriedMGAmmo && P.bCarriesExtraAmmo)
                         {
                             P.bUsedCarriedMGAmmo = false;
                             bResupplied = true;
@@ -205,6 +305,11 @@ event Destroyed()
 {
     local int i;
     local Pawn P;
+
+    if (MapIconAttachment != none)
+    {
+        MapIconAttachment.Destroy();
+    }
 
     super.Destroyed();
 
@@ -237,12 +342,12 @@ event Touch(Actor Other)
     ROP = ROPawn(Other);
     V = Vehicle(Other);
 
-    if (ROP != none && (ROP.GetTeamNum() == TeamIndex || TeamIndex == NEUTRAL_TEAM_INDEX))
+    if (CanResupplyPawn(ROP))
     {
         ROP.bTouchingResupply = true;
     }
 
-    if (V != none && (V.GetTeamNum() == TeamIndex || TeamIndex == NEUTRAL_TEAM_INDEX))
+    if (CanResupplyPawn(V))
     {
         V.EnteredResupply();
     }
@@ -275,11 +380,14 @@ event UnTouch(Actor Other)
 
 defaultproperties
 {
-    TeamIndex=NEUTRAL_TEAM_INDEX
+    RemoteRole=ROLE_DumbProxy
+
+    TeamIndex=-1
+    SquadIndex=-1
     UpdateTime=2.5
     ResupplyType=RT_All
     bDramaticLighting=true
     CollisionRadius=300
     CollisionHeight=100
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_Resupply'
 }
-

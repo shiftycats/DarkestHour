@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_KV1sCannon extends DH_T3476Cannon; // different turret but shares much in common with T34/76 cannon class
@@ -32,6 +32,12 @@ defaultproperties
     PoweredRotationsPerSecond=0.0778 // 28 degrees per sec
     CustomPitchUpLimit=5097 // +28/-5 degrees
     CustomPitchDownLimit=64626
+
+    //Sounds
+    ReloadStages(0)=(Sound=Sound'DH_Vehicle_Reloads.Reloads.reload_02s_01')
+    ReloadStages(1)=(Sound=Sound'DH_Vehicle_Reloads.Reloads.reload_02s_02')
+    ReloadStages(2)=(Sound=Sound'DH_Vehicle_Reloads.Reloads.reload_02s_03')
+    ReloadStages(3)=(Sound=Sound'DH_Vehicle_Reloads.Reloads.reload_02s_04')
 
     // Cannon ammo
     InitialPrimaryAmmo=50

@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHCWTankCrewmanRoles extends DHAlliedTankCrewmanRoles
@@ -10,7 +10,7 @@ defaultproperties
 {
     PrimaryWeapons(0)=(Item=class'DH_Weapons.DH_StenMkIIWeapon')
     SecondaryWeapons(0)=(Item=class'DH_Weapons.DH_EnfieldNo2Weapon')
-    GivenItems(0)="DH_Equipment.DHBinocularsItem"
+    GivenItems(0)="DH_Equipment.DHBinocularsItemAllied"
     VoiceType="DH_BritishPlayers.DHBritishVoice"
     AltVoiceType="DH_BritishPlayers.DHBritishVoice"
 }

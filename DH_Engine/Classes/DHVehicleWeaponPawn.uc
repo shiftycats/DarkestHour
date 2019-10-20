@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHVehicleWeaponPawn extends ROVehicleWeaponPawn
@@ -16,7 +16,12 @@ var     float       ViewTransitionDuration;      // calculated to control the ti
 // Binoculars
 var     int         BinocPositionIndex;          // index position when player is using binoculars
 var     bool        bPlayerHasBinocs;            // on entering, records whether player has binoculars (necessary to move to binocs position)
-var     texture     BinocsOverlay;               // 1st person texture overlay to draw when in binocs position
+var     bool        bHasGermanBinocs;
+var     bool        bHasSovietBinocs;
+var     bool        bHasAlliedBinocs;
+var     texture     GermanBinocsOverlay;         // new - 1st person texture overlay to draw when in binocs position (if player possesses German binocs)
+var     texture     SovietBinocsOverlay;         // new - 1st person texture overlay to draw when in binocs position (if player possesses Soviet binocs)
+var     texture     AlliedBinocsOverlay;         // new - 1st person texture overlay to draw when in binocs position (if player possesses Western Allies binocs)
 var     DHDecoAttachment    BinocsAttachment;    // decorative actor spawned locally when player is using binoculars
 
 // Gunsight overlay
@@ -35,7 +40,7 @@ replication
 {
     // Variables the server will replicate to the client that owns this actor
     reliable if (bNetOwner && bNetDirty && Role == ROLE_Authority)
-        bPlayerHasBinocs;
+        bPlayerHasBinocs, bHasGermanBinocs, bHasSovietBinocs, bHasAlliedBinocs;
 
     // Functions a client can call on the server
     reliable if (Role < ROLE_Authority)
@@ -166,6 +171,22 @@ simulated function SetInitialViewRotation()
 simulated function DrawBinocsOverlay(Canvas C)
 {
     local float ScreenRatio;
+    local texture   BinocsOverlay;
+
+    if (bHasGermanBinocs)
+    {
+        BinocsOverlay = GermanBinocsOverlay;
+    }
+
+    if (bHasSovietBinocs)
+    {
+        BinocsOverlay = SovietBinocsOverlay;
+    }
+
+    if (bHasAlliedBinocs)
+    {
+        BinocsOverlay = AlliedBinocsOverlay;
+    }
 
     if (BinocsOverlay != none)
     {
@@ -628,6 +649,22 @@ function KDriverEnter(Pawn P)
     if (BinocPositionIndex >= 0 && BinocPositionIndex < DriverPositions.Length) // record whether player has binoculars
     {
         bPlayerHasBinocs = P.FindInventoryType(class<Inventory>(DynamicLoadObject("DH_Equipment.DHBinocularsItem", class'class'))) != none;
+    }
+
+    if (bPlayerHasBinocs)
+    {
+        if (P.FindInventoryType(class<Inventory>(DynamicLoadObject("DH_Equipment.DHBinocularsItemGerman", class'class'))) != none)
+        {
+            bHasGermanBinocs = true;
+        }
+        else if (P.FindInventoryType(class<Inventory>(DynamicLoadObject("DH_Equipment.DHBinocularsItemSoviet", class'class'))) != none)
+        {
+            bHasSovietBinocs = true;
+        }
+        else if (P.FindInventoryType(class<Inventory>(DynamicLoadObject("DH_Equipment.DHBinocularsItemAllied", class'class'))) != none)
+        {
+            bHasAlliedBinocs = true;
+        }
     }
 }
 
@@ -1092,7 +1129,7 @@ simulated function bool CanSwitchToVehiclePosition(byte F)
     local Vehicle          NewVehiclePosition;
     local bool             bMustBeTankerToSwitch;
 
-    if (F == 0 || VehicleBase == none) // pressing zero is an invalid switch choice
+    if (F == 0 || DHVehicle(VehicleBase) == none) // pressing zero is an invalid switch choice
     {
         return false;
     }
@@ -1102,6 +1139,12 @@ simulated function bool CanSwitchToVehiclePosition(byte F)
     {
         NewVehiclePosition = VehicleBase;
         bMustBeTankerToSwitch = VehicleBase.bMustBeTankCommander;
+
+        if (DHVehicle(VehicleBase).default.bRequiresDriverLicense && !class'DHPlayerReplicationInfo'.static.IsPlayerLicensedToDrive(DHPlayer(Self.Controller)) && IsHumanControlled())
+        {
+            DisplayVehicleMessage(0); // not qualified to operate vehicle
+            return false;
+        }
     }
     // Trying to switch to non-driver position
     else
@@ -1474,9 +1517,19 @@ static function StaticPrecache(LevelInfo L)
         L.AddPrecacheMaterial(default.GunsightOverlay);
     }
 
-    if (default.BinocsOverlay != none)
+    if (default.GermanBinocsOverlay != none)
     {
-        L.AddPrecacheMaterial(default.BinocsOverlay);
+        L.AddPrecacheMaterial(default.GermanBinocsOverlay);
+    }
+
+    if (default.SovietBinocsOverlay != none)
+    {
+        L.AddPrecacheMaterial(default.SovietBinocsOverlay);
+    }
+
+    if (default.AlliedBinocsOverlay != none)
+    {
+        L.AddPrecacheMaterial(default.AlliedBinocsOverlay);
     }
 
     if (default.GunClass != none)
@@ -1489,7 +1542,9 @@ static function StaticPrecache(LevelInfo L)
 simulated function UpdatePrecacheMaterials()
 {
     Level.AddPrecacheMaterial(GunsightOverlay);
-    Level.AddPrecacheMaterial(BinocsOverlay);
+    Level.AddPrecacheMaterial(GermanBinocsOverlay);
+    Level.AddPrecacheMaterial(SovietBinocsOverlay);
+    Level.AddPrecacheMaterial(AlliedBinocsOverlay);
 }
 
 // Modified to call Initialize functions to do set up in the related vehicle classes that requires actor references to different vehicle actors
@@ -2192,6 +2247,10 @@ defaultproperties
     TPCamDistance=300.0
     TPCamLookat=(X=-25.0,Y=0.0,Z=0.0)
     TPCamWorldOffset=(X=0.0,Y=0.0,Z=120.0)
+
+    GermanBinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_6x30Germ'
+    SovietBinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_7x50Sov'
+    AlliedBinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_7x50Allied'
 
     // These variables are effectively deprecated & should not be used - they are either ignored or values below are assumed & may be hard coded into functionality:
     bPCRelativeFPRotation=true

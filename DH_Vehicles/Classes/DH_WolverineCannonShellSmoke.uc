@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_WolverineCannonShellSmoke extends DHCannonShellSmoke;
@@ -16,5 +16,4 @@ defaultproperties
     BallisticCoefficient=1.627
     Speed=47799.0
     MaxSpeed=47799.0
-    Tag="M89 WP"
 }

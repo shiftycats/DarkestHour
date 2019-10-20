@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_M5GunCannon extends DHATGunCannon;
@@ -26,6 +26,10 @@ defaultproperties
     ProjectileClass=class'DH_Guns.DH_M5CannonShell'
     PrimaryProjectileClass=class'DH_Guns.DH_M5CannonShell'
     SecondaryProjectileClass=class'DH_Guns.DH_M5CannonShellHE'
+
+    nProjectileDescriptions(0)="M62 APC"
+    nProjectileDescriptions(1)="M42A1 HE-T"
+
     InitialPrimaryAmmo=20
     InitialSecondaryAmmo=10
     MaxPrimaryAmmo=60

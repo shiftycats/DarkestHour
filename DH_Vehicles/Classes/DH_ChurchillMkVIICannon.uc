@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_ChurchillMkVIICannon extends DHVehicleCannon;
@@ -29,14 +29,21 @@ defaultproperties
     ManualRotationsPerSecond=0.029
     PoweredRotationsPerSecond=0.06667
     CustomPitchUpLimit=3641
-    CustomPitchDownLimit=63260
+    CustomPitchDownLimit=65008
 
     // Cannon ammo
     ProjectileClass=class'DH_Vehicles.DH_CromwellCannonShell'
     PrimaryProjectileClass=class'DH_Vehicles.DH_CromwellCannonShell'
     SecondaryProjectileClass=class'DH_Vehicles.DH_CromwellCannonShellHE'
     TertiaryProjectileClass=class'DH_Vehicles.DH_CromwellCannonShellSmoke'
+
+
     ProjectileDescriptions(2)="Smoke"
+
+    nProjectileDescriptions(0)="M61 APC"
+    nProjectileDescriptions(1)="M48 HE-T"
+    nProjectileDescriptions(2)="M89 WP"
+
     InitialPrimaryAmmo=28
     InitialSecondaryAmmo=15
     InitialTertiaryAmmo=6

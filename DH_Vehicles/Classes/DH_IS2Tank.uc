@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_IS2Tank extends DHArmoredVehicle;
@@ -67,7 +67,6 @@ defaultproperties
     VehHitpoints(2)=(PointRadius=25.0,PointScale=1.0,PointBone="body",PointOffset=(X=16.0,Y=25.0,Z=-5.0),DamageMultiplier=5.0,HitPointType=HP_AmmoStore)
     TreadHitMaxHeight=8.0
     DamagedEffectOffset=(X=-135.0,Y=0.0,Z=35.0) // repositioned to engine deck grille
-    HullFireChance=0.55
     FireAttachBone="Body"
     FireEffectOffset=(X=170.0,Y=0.0,Z=25.0)
     DestroyedVehicleMesh=StaticMesh'allies_vehicles_stc.Is2_destroyed'
@@ -152,6 +151,7 @@ defaultproperties
          BoneName="Steer_Wheel_LF"
          BoneRollAxis=AXIS_Y
          WheelRadius=30.000000
+         bLeftTrack=true
      End Object
      Wheels(0)=SVehicleWheel'DH_Vehicles.DH_IS2Tank.LF_Steering'
 
@@ -172,6 +172,7 @@ defaultproperties
          BoneName="Steer_Wheel_LR"
          BoneRollAxis=AXIS_Y
          WheelRadius=30.000000
+         bLeftTrack=true
      End Object
      Wheels(2)=SVehicleWheel'DH_Vehicles.DH_IS2Tank.LR_Steering'
      Begin Object Class=SVehicleWheel Name=RR_Steering
@@ -189,6 +190,7 @@ defaultproperties
          BoneName="Drive_Wheel_L"
          BoneRollAxis=AXIS_Y
          WheelRadius=30.000000
+         bLeftTrack=true
      End Object
      Wheels(4)=SVehicleWheel'DH_Vehicles.DH_IS2Tank.Left_Drive_Wheel'
      Begin Object Class=SVehicleWheel Name=Right_Drive_Wheel

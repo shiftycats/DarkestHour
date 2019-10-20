@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_T3476Tank extends DHArmoredVehicle;
@@ -69,7 +69,6 @@ defaultproperties
     TreadHitMaxHeight=5.0
     DamagedEffectScale=0.9
     DamagedEffectOffset=(X=-105.0,Y=0.0,Z=40.0) // adjusted from original
-    HullFireChance=0.55
     FireAttachBone="Body"
     FireEffectOffset=(X=127.0,Y=-18.0,Z=25.0)
     DestroyedVehicleMesh=StaticMesh'allies_vehicles_stc.T3476_Destroyed'
@@ -147,6 +146,7 @@ defaultproperties
          BoneName="Steer_Wheel_LF"
          BoneRollAxis=AXIS_Y
          WheelRadius=33.0
+         bLeftTrack=true
      End Object
      Wheels(0)=SVehicleWheel'DH_Vehicles.DH_T3476Tank.LF_Steering'
      Begin Object Class=SVehicleWheel Name=RF_Steering
@@ -165,6 +165,7 @@ defaultproperties
          BoneName="Steer_Wheel_LR"
          BoneRollAxis=AXIS_Y
          WheelRadius=33.0
+         bLeftTrack=true
      End Object
      Wheels(2)=SVehicleWheel'DH_Vehicles.DH_T3476Tank.LR_Steering'
      Begin Object Class=SVehicleWheel Name=RR_Steering
@@ -182,6 +183,7 @@ defaultproperties
          BoneName="Drive_Wheel_L"
          BoneRollAxis=AXIS_Y
          WheelRadius=33.0
+         bLeftTrack=true
      End Object
      Wheels(4)=SVehicleWheel'DH_Vehicles.DH_T3476Tank.Left_Drive_Wheel'
      Begin Object Class=SVehicleWheel Name=Right_Drive_Wheel

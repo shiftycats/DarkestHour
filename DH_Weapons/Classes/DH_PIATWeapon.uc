@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_PIATWeapon extends DHRocketWeapon;
@@ -69,6 +69,8 @@ defaultproperties
     PickupClass=class'DH_Weapons.DH_PIATPickup'
 
     Mesh=SkeletalMesh'DH_PIAT_1st.PIAT' // TODO: there is no specularity mask for this weapon
+
+    IronSightDisplayFOV=45.0 //25.0
 
     RocketAttachmentClass=class'DH_Weapons.DH_PIATAmmoRound'
     MuzzleBone="Warhead"

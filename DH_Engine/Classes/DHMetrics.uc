@@ -8,6 +8,7 @@ class DHMetrics extends Actor
 
 var private Hashtable_string_Object         Players;
 var private array<DHMetricsRound>           Rounds;
+var private array<DHMetricsTextMessage>     TextMessages;
 
 function PostBeginPlay()
 {
@@ -30,7 +31,7 @@ function Finalize()
     {
         MP = DHMetricsPlayer(Object);
 
-        if (MP != none)
+        if (MP != none && MP.Sessions[0].EndedAt == none)
         {
             MP.Sessions[0].EndedAt = class'DateTime'.static.Now(self);
         }
@@ -62,6 +63,7 @@ function WriteToFile()
     Root = (new class'JSONObject')
         .Put("players", class'JSONArray'.static.FromSerializables(PlayersArray))
         .Put("rounds", class'JSONArray'.static.FromSerializables(Rounds))
+        .Put("text_messages", class'JSONArray'.static.FromSerializables(TextMessages))
         .PutString("version", class'DarkestHourGame'.default.Version.ToString())
         .Put("server", (new class'JSONObject')
             .PutString("name", Level.Game.GameReplicationInfo.ServerName))
@@ -127,11 +129,17 @@ function OnPlayerLogin(PlayerController PC)
 
     OnPlayerChangeName(PC);
 
+    // Finalize existing sessions if they were for some reason not finalized to begin with.
+    if (P.Sessions.Length > 0 && P.Sessions[0].EndedAt == none)
+    {
+        P.Sessions[0].EndedAt = class'DateTime'.static.Now(self);
+    }
+
     // Add a new session to the front of the sessions list.
     P.Sessions.Insert(0, 1);
     P.Sessions[0] = new class'DHMetricsPlayerSession';
     P.Sessions[0].StartedAt = class'DateTime'.static.Now(self);
-    P.Sessions[0].NetworkAddress = TrimPort(PC.GetPlayerNetworkAddress());
+    P.Sessions[0].NetworkAddress = class'INet4Address'.static.TrimPort(PC.GetPlayerNetworkAddress());
 }
 
 function OnPlayerLogout(DHPlayer PC)
@@ -186,6 +194,33 @@ function OnPlayerChangeName(PlayerController PC)
     {
         P.Names[P.Names.Length] = PC.PlayerReplicationInfo.PlayerName;
     }
+}
+
+function OnTextMessage(PlayerController PC, string Type, string Message)
+{
+    local DHMetricsTextMessage TextMessage;
+    local DHPlayerReplicationInfo PRI;
+
+    if (PC == none || Type == "None" || Message == "")
+    {
+        return;
+    }
+
+    TextMessage = new class'DHMetricsTextMessage';
+    TextMessage.Type = Type;
+    TextMessage.Message = Message;
+    TextMessage.ROID = PC.GetPlayerIDHash();
+    TextMessage.SentAt = class'DateTime'.static.Now(self);
+    TextMessage.TeamIndex = PC.GetTeamNum();
+
+    PRI = DHPlayerReplicationInfo(PC.PlayerReplicationInfo);
+
+    if (PRI != none)
+    {
+        TextMessage.SquadIndex = PRI.SquadIndex;
+    }
+
+    TextMessages[TextMessages.Length] = TextMessage;
 }
 
 function OnConstructionBuilt(DHConstruction Construction, int RoundTime)
@@ -283,18 +318,17 @@ function OnRallyPointCreated(DHSpawnPoint_SquadRallyPoint RP)
     Rounds[0].RallyPoints[Rounds[0].RallyPoints.Length] = MRP;
 }
 
-static function string TrimPort(string NetworkAddress)
+// Adds a generic JSONObject event.
+function AddEvent(string Type, JSONObject Data)
 {
-    local int i;
-
-    i = InStr(NetworkAddress, ":");
-
-    if (i >= 0)
+    if (Rounds.Length == 0 || Type == "" || Data == none)
     {
-        NetworkAddress = Left(NetworkAddress, i);
+        return;
     }
 
-    return NetworkAddress;
+    Rounds[0].Events[Rounds[0].Events.Length] = (new class'JSONObject')
+        .PutString("type", Type)
+        .Put("data", Data);
 }
 
 defaultproperties

@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHBullet_ArmorPiercing extends DHAntiVehicleProjectile
@@ -414,7 +414,7 @@ simulated function HitWall(vector HitNormal, Actor Wall)
                     }
                 }
             }
-            else if (Vehicle(Wall) != none || ROVehicleWeapon(Wall) != none || RODestroyableStaticMesh(Wall) != none || Mover(Wall) != none)
+            else if (Wall.bCanBeDamaged)
             {
                 UpdateInstigator();
                 Wall.TakeDamage(Damage - (20.0 * (1.0 - VSize(Velocity) / default.Speed)), Instigator, Location, MomentumTransfer * Normal(Velocity), MyDamageType);
@@ -536,7 +536,7 @@ defaultproperties
     ShellHitVehicleEffectClass=class'DH_Effects.DHBulletPenetrateArmorEffect' // custom class with much smaller penetration effects than shell (PTRD uses 'TankAPHitPenetrateSmall')
     VehicleHitSound=Sound'ProjectileSounds.PTRD_penetrate'
     VehiclePenetrateSoundVolume=5.5
-    ShellDeflectEffectClass=class'ROEffects.ROBulletHitMetalArmorEffect'
+    ShellDeflectEffectClass=class'ROEffects.TankAPHitDeflect'
     VehicleDeflectSound=Sound'PTRD_deflect'
     VehicleDeflectSoundVolume=5.5
 

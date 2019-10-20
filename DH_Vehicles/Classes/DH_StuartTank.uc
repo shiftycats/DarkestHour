@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_StuartTank extends DHArmoredVehicle;
@@ -63,7 +63,6 @@ defaultproperties
     TreadHitMaxHeight=59.0
     TreadDamageThreshold=0.5
     DamagedEffectOffset=(X=-78.5,Y=20.0,Z=100.0)
-    HullFireChance=0.45
     FireAttachBone="Player_Driver"
     DestroyedVehicleMesh=StaticMesh'DH_allies_vehicles_stc.M5_Stuart.M5_Stuart_dest1'
 
@@ -145,6 +144,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(Z=11.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_StuartTank.LF_Steering'
     Begin Object Class=SVehicleWheel Name=RF_Steering
@@ -163,6 +163,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=-50.0,Z=11.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_StuartTank.LR_Steering'
     Begin Object Class=SVehicleWheel Name=RR_Steering
@@ -180,6 +181,7 @@ defaultproperties
         BoneRollAxis=AXIS_Y
         BoneOffset=(X=-20.0,Z=11.0)
         WheelRadius=33.0
+        bLeftTrack=true
     End Object
     Wheels(4)=SVehicleWheel'DH_Vehicles.DH_StuartTank.Left_Drive_Wheel'
     Begin Object Class=SVehicleWheel Name=Right_Drive_Wheel

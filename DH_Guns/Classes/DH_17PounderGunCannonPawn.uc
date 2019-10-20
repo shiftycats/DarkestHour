@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_17PounderGunCannonPawn extends DHATGunCannonPawn;
@@ -18,7 +18,6 @@ defaultproperties
     CannonScopeCenter=Texture'DH_VehicleOptics_tex.British.17Pdr_sight_mover'
     GunsightSize=0.459 // 13 degrees visible FOV at 3x magnification (No.51 sight)
     RangeText="Yards"
-    BinocsOverlay=Texture'DH_VehicleOptics_tex.General.BINOC_overlay_7x50Allied'
     AmmoShellTexture=Texture'InterfaceArt_tex.Tank_Hud.T3485shell'
     AmmoShellReloadTexture=Texture'InterfaceArt_tex.Tank_Hud.T3485shell_reload'
 }

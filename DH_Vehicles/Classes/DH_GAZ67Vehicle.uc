@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_GAZ67Vehicle extends DHVehicle;
@@ -12,7 +12,7 @@ defaultproperties
     VehicleTeam=1
     VehicleMass=3.5
     ReinforcementCost=1
-    bMustBeInSquadToSpawn=true
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_Vehicle'
 
     // Hull mesh
     Mesh=SkeletalMesh'DH_GAZ67_anm.GAZ67_ext'
@@ -125,6 +125,7 @@ defaultproperties
         WheelRadius=25.5
         SupportBoneName="Axle_FR" // means left side vertices are rotated around right axle bone - just makes axle move correctly with wheels, purely a visual thing
         SupportBoneAxis=AXIS_X
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_GAZ67Vehicle.Wheel_FrontL'
     Begin Object Class=SVehicleWheel Name=Wheel_FrontR
@@ -145,6 +146,7 @@ defaultproperties
         WheelRadius=25.5
         SupportBoneName="Axle_BR"
         SupportBoneAxis=AXIS_X
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_GAZ67Vehicle.Wheel_BackL'
     Begin Object Class=SVehicleWheel Name=Wheel_BackR

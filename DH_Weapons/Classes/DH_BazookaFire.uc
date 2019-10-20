@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_BazookaFire extends DHRocketFire;
@@ -13,5 +13,9 @@ defaultproperties
     ExhaustDamageType=class'DH_Weapons.DH_BazookaExhaustDamType'
     ExhaustDamage=180.0
     ExhaustLength=320.0
-    MuzzleBone="warhead1"
+    MuzzleBone="warhead1slave" //"warhead1"
+
+    //** Effects **//
+    FlashEmitterClass=class'DH_Effects.DHMuzzleFlash1stBazooka'
+    SmokeEmitterClass = class'ROEffects.ROMuzzleSmoke'
 }

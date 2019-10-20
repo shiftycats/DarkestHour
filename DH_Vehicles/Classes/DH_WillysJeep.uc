@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_WillysJeep extends DHVehicle;
@@ -12,7 +12,7 @@ defaultproperties
     VehicleTeam=1
     VehicleMass=2.0
     ReinforcementCost=1
-    bMustBeInSquadToSpawn=true
+    MapIconAttachmentClass=class'DH_Engine.DHMapIconAttachment_Vehicle'
 
     // Hull mesh
     Mesh=SkeletalMesh'DH_WillysJeep_anm.jeep_body_ext'
@@ -126,6 +126,7 @@ defaultproperties
         WheelRadius=25.0
         SupportBoneName="RightFrontSusp00"
         SupportBoneAxis=AXIS_X
+        bLeftTrack=true
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_WillysJeep.LFWheel'
     Begin Object Class=SVehicleWheel Name=RFWheel
@@ -148,6 +149,7 @@ defaultproperties
         WheelRadius=25.0
         SupportBoneName="LeftRearAxle"
         SupportBoneAxis=AXIS_X
+        bLeftTrack=true
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_WillysJeep.LRWheel'
     Begin Object Class=SVehicleWheel Name=RRWheel

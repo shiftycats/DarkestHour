@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHWeaponPickup extends ROWeaponPickup
@@ -58,6 +58,11 @@ simulated function Destroyed()
     if (BarrelSteamEmitter != none)
     {
         BarrelSteamEmitter.Destroy();
+    }
+
+    if (TouchMessageParameters != none)
+    {
+        TouchMessageParameters.PlayerController = none;
     }
 }
 

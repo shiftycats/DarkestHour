@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHScoreBoard extends ROScoreBoard;
@@ -26,6 +26,7 @@ var localized string NetHealthText;
 var string TabSpaces;
 var string LargeTabSpaces;
 
+var color ScoreboardLabelColor;
 var color SquadHeaderColor;
 var color PlayerBackgroundColor;
 var color SelfBackgroundColor;
@@ -38,6 +39,7 @@ var Material PatronLeadMaterial,
              PatronGoldMaterial;
 
 var Material DeveloperIconMaterial;
+var Material FlagsTexture;
 
 enum EScoreboardColumnType
 {
@@ -49,6 +51,7 @@ enum EScoreboardColumnType
     COLUMN_PointsCombat,
     COLUMN_PointsSupport,
     COLUMN_Deaths,
+    COLUMN_Flag,
     COLUMN_Ping
 };
 
@@ -71,6 +74,7 @@ struct CellRenderInfo
     var bool        bDrawBacking;
     var color       BackingColor;
     var Material    Icon;
+    var float       U, V, UL, VL;
 };
 
 var array<ScoreboardColumn> ScoreboardColumns;
@@ -160,10 +164,14 @@ function GetScoreboardColumnRenderInfo(int ScoreboardColumnIndex, DHPlayerReplic
             if (PRI.bIsDeveloper)
             {
                 CRI.Icon = default.DeveloperIconMaterial;
+                CRI.U = 0;
+                CRI.V = 0;
+                CRI.UL = default.DeveloperIconMaterial.MaterialUSize() - 1;
+                CRI.VL = default.DeveloperIconMaterial.MaterialVSize() - 1;
             }
-            else if (PRI.PatronStatus > 0) // TODO expand on this (have array of icons and use the index of the enum)
+            else if (PRI.PatronTier != PATRON_None) // TODO expand on this (have array of icons and use the index of the enum)
             {
-                Switch (PRI.PatronStatus)
+                switch (PRI.PatronTier)
                 {
                     case PATRON_Lead:
                         CRI.Icon = default.PatronLeadMaterial;
@@ -178,6 +186,11 @@ function GetScoreboardColumnRenderInfo(int ScoreboardColumnIndex, DHPlayerReplic
                         CRI.Icon = default.PatronGoldMaterial;
                         break;
                 }
+
+                CRI.U = 0;
+                CRI.V = 0;
+                CRI.UL = CRI.Icon.MaterialUSize() - 1;
+                CRI.VL = CRI.Icon.MaterialVSize() - 1;
             }
             break;
         case COLUMN_Role:
@@ -215,7 +228,36 @@ function GetScoreboardColumnRenderInfo(int ScoreboardColumnIndex, DHPlayerReplic
         case COLUMN_Deaths:
             CRI.Text = string(int(PRI.Deaths));
             break;
+        case COLUMN_Flag:
+            CRI.Text = "";
+            if (PRI.CountryIndex >= 0)
+            {
+                CRI.Icon = default.FlagsTexture;
+                GetFlagCoordinates(PRI.CountryIndex, CRI.U, CRI.V, CRI.UL, CRI.VL);
+            }
+            break;
+        default:
+            break;
     }
+}
+
+static function GetFlagCoordinates(int CountryIndex, out float U, out float V, out float UL, out float VL)
+{
+    const FLAG_WIDTH = 24;
+    const FLAG_HEIGHT = 16;
+    const COLUMN_COUNT = 16;
+    const ATLAS_WIDTH = 512;
+    const ATLAS_HEIGHT = 256;
+
+    local int RowIndex, ColumnIndex;
+
+    RowIndex = CountryIndex / COLUMN_COUNT;
+    ColumnIndex = CountryIndex % COLUMN_COUNT;
+
+    U = ColumnIndex * FLAG_WIDTH;
+    V = RowIndex * FLAG_HEIGHT;
+    UL = FLAG_WIDTH - 1;
+    VL = FLAG_HEIGHT - 1;
 }
 
 // Modified to create a special 'PRIComparator' object that is used to efficiently sort each team array, with variable methods of sorting
@@ -404,50 +446,58 @@ simulated function UpdateScoreBoard(Canvas C)
     MaxTeamWidth = NameLength + RoleLength + ScoreLength + PingLength;
 
     //////////// DRAW SCOREBOARD HEADER ////////////
-
-    //C.Font = HUD.static.GetConsoleFont(C);
-    //C.DrawTextJustified(Left(DHGRI.ServerName, 64), 1, 0.0, 0.0, C.ClipX, Y);
-
-    // TODO: draw server name somewhere
-
-    // Now set standard font & line height
+    // Set standard font & line height
     C.Font = HUD.static.GetConsoleFont(C);
     C.TextSize("Text", XL, BaseLineHeight);
     LineHeight = BaseLineHeight * 1.25;
 
-    // Construct a line with various information about the round & the server
-    s = HUD.default.TimeRemainingText; // start with the round timer (time remaining)
+    // Construct a line with various information about the round & the server (start with "time remaining")
+    S = class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.TimeRemainingText;                          // Label
+    S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor);
 
     if (DHGRI.DHRoundDuration == 0)
     {
-        s $= HUD.default.NoTimeLimitText;
+        S $= HUD.default.NoTimeLimitText;                                                                                    // Value
     }
     else
     {
-        s $= class'TimeSpan'.static.ToString(DHGRI.GetRoundTimeRemaining());
+        S $= class'TimeSpan'.static.ToString(DHGRI.GetRoundTimeRemaining());                                                 // Or Value
     }
 
-    // Add time elapsed (extra in DH)
-    S $= HUD.default.SpacingText $ HUD.default.TimeElapsedText $ HUD.static.GetTimeString(GRI.ElapsedTime - DHGRI.RoundStartTime);
+    // Add time elapsed (useful if time remaining changes)
+    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.TimeElapsedText;              // Label
+    S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ HUD.static.GetTimeString(GRI.ElapsedTime - DHGRI.RoundStartTime); // Value
+
+    // Add server name (if not standalone)
+    if (Level.NetMode != NM_Standalone)
+    {
+        S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.ServerNameText;           // Label
+        S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ Left(DHGRI.ServerName, 12);                                   // Value
+    }
 
     // Add server IP (optional)
     if (DHGRI.bShowServerIPOnScoreboard && Level.NetMode != NM_Standalone)
     {
-        S $= HUD.default.SpacingText $ HUD.default.IPText $ PlayerController(Owner).GetServerIP();
+        S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.IPText;      // Label
+        S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ PlayerController(Owner).GetServerIP();           // Value
     }
 
     // Add level name (extra in DH)
-    s $= HUD.default.SpacingText $ HUD.default.MapNameText $ class'DHLib'.static.GetMapName(Level);
+    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.MapNameText;     // Label
+    S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ class'DHLib'.static.GetMapName(Level);               // Value
 
     // Add game type
-    S $= HUD.default.SpacingText $ HUD.default.MapGameTypeText $ DHGRI.GameType.default.GameTypeName;
+    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ HUD.default.MapGameTypeText; // Label
+    S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ DHGRI.GameType.default.GameTypeName;                 // Value
 
     // Add Server Tick Health
     HealthString = class'DHLib'.static.GetServerHealthString(DHGRI.ServerTickHealth, HealthColor);
-    S $= HUD.default.SpacingText $ default.TickHealthText $ ":" @ class'GameInfo'.static.MakeColorCode(HealthColor) $ HealthString @ "(" $ DHGRI.ServerTickHealth $ ")";
+    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ default.TickHealthText;      // Label
+    S $= class'GameInfo'.static.MakeColorCode(HealthColor) $ HealthString @ "(" $ DHGRI.ServerTickHealth $ ")";              // Value
 
-    // Add Server Loss/Net Health (forces back white colors)
-    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ default.NetHealthText $ ":" @ "(" $ DHGRI.ServerNetHealth $ ")";
+    // Add Server Loss Health
+    S $= HUD.default.SpacingText $ class'GameInfo'.static.MakeColorCode(ScoreboardLabelColor) $ default.NetHealthText;       // Label
+    S $= class'GameInfo'.static.MakeColorCode(HUD.default.WhiteColor) $ "(" $ DHGRI.ServerNetHealth $ ")";                   // Value
 
     Y = CalcY(0.25, C);
 
@@ -561,8 +611,6 @@ simulated function DHDrawTeam(Canvas C, int TeamIndex, array<DHPlayerReplication
     }
 
     TeamWidth = CalcX(GetScoreboardTeamWidth(TeamIndex), C);
-
-    // TODO: Draw flag?!
 
     DHDrawCell(C, TeamName @ "-" @ DHGRI.UnitName[TeamIndex], 0, X, Y, TeamWidth, LineHeight, false, TeamColor);
 
@@ -692,7 +740,7 @@ simulated function DHDrawTeam(Canvas C, int TeamIndex, array<DHPlayerReplication
                 {
                     GetScoreboardColumnRenderInfo(ScoreboardColumnIndices[j], SquadMembers[i], CRI);
 
-                    DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking , CRI.TextColor, CRI.BackingColor, CRI.Icon);
+                    DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking , CRI.TextColor, CRI.BackingColor, CRI.Icon, CRI.U, CRI.V, CRI.UL, CRI.VL);
                     X += CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C);
                 }
 
@@ -766,7 +814,7 @@ simulated function DHDrawTeam(Canvas C, int TeamIndex, array<DHPlayerReplication
                 {
                     GetScoreboardColumnRenderInfo(ScoreboardColumnIndices[j], TeamPRI[i], CRI);
 
-                    DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking, CRI.TextColor, CRI.BackingColor, CRI.Icon);
+                    DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking, CRI.TextColor, CRI.BackingColor, CRI.Icon, CRI.U, CRI.V, CRI.UL, CRI.VL);
                     X += CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C);
                 }
 
@@ -809,7 +857,7 @@ simulated function DHDrawTeam(Canvas C, int TeamIndex, array<DHPlayerReplication
             {
                 GetScoreboardColumnRenderInfo(ScoreboardColumnIndices[j], TeamPRI[i], CRI);
 
-                DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking, CRI.TextColor, CRI.BackingColor, CRI.Icon);
+                DHDrawCell(C, CRI.Text, CRI.Justification, X, Y, CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C), LineHeight, CRI.bDrawBacking, CRI.TextColor, CRI.BackingColor, CRI.Icon, CRI.U, CRI.V, CRI.UL, CRI.VL);
                 X += CalcX(ScoreboardColumns[ScoreboardColumnIndices[j]].Width, C);
             }
 
@@ -844,7 +892,7 @@ simulated function DHDrawTeam(Canvas C, int TeamIndex, array<DHPlayerReplication
 }
 
 // Modified to add a drop shadow to the text drawing (& also to remove unused variables)
-simulated function DHDrawCell(Canvas C, coerce string Text, byte Align, float XPos, float YPos, float Width, float Height, bool bDrawBacking, Color F, optional Color B, optional Material Icon)
+simulated function DHDrawCell(Canvas C, coerce string Text, byte Align, float XPos, float YPos, float Width, float Height, bool bDrawBacking, Color F, optional Color B, optional Material Icon, optional float U, optional float V, optional float UL, optional float VL)
 {
     local float XL;
 
@@ -861,18 +909,21 @@ simulated function DHDrawCell(Canvas C, coerce string Text, byte Align, float XP
     if (Icon != none)
     {
         C.DrawColor = class'UColor'.default.White;
-        XL = Height * class'UMaterial'.static.AspectRatio(Icon);
+        XL = Height * ((1.0 + UL) / (1.0 + VL));
         C.SetPos(0.0, 0.0);
-        C.DrawTile(Icon, XL, Height, 0, 0, Icon.MaterialUSize() - 1, Icon.MaterialVSize() - 1);
+        C.DrawTile(Icon, XL, Height, U, V, UL, VL);
         XPos += XL + 4.0;
     }
 
-    C.DrawColor = class'UColor'.default.Black;
-    C.DrawColor.A = 128;
-    C.DrawTextJustified(Text, Align, XPos + 1, YPos + 1, C.ClipX, C.ClipY);
+    if (Text != "")
+    {
+        C.DrawColor = class'UColor'.default.Black;
+        C.DrawColor.A = 128;
+        C.DrawTextJustified(Text, Align, XPos + 1, YPos + 1, C.ClipX, C.ClipY);
 
-    C.DrawColor = F;
-    C.DrawTextJustified(Text, Align, XPos, YPos, C.ClipX, C.ClipY);
+        C.DrawColor = F;
+        C.DrawTextJustified(Text, Align, XPos, YPos, C.ClipX, C.ClipY);
+    }
 
     C.SetOrigin(0.0, 0.0);
     C.SetClip(C.SizeX, C.SizeY);
@@ -885,14 +936,16 @@ defaultproperties
 
     ScoreboardColumns(0)=(Title="#",Type=COLUMN_SquadMemberIndex,Width=1.5,Justification=1,bFriendlyOnly=true)
     ScoreboardColumns(1)=(Type=COLUMN_PlayerName,Width=5.0)
-    ScoreboardColumns(2)=(Title="Role",Type=COLUMN_Role,Width=5.0,bFriendlyOnly=true)
-    ScoreboardColumns(3)=(Title="",Type=COLUMN_PointsCombat,Width=1.5,bFriendlyOnly=true,IconMaterial=Material'DH_InterfaceArt2_tex.Icons.points_combat')
-    ScoreboardColumns(4)=(Title="",Type=COLUMN_PointsSupport,Width=1.5,bFriendlyOnly=true,IconMaterial=Material'DH_InterfaceArt2_tex.Icons.points_support')
-    ScoreboardColumns(5)=(Title="K",Type=COLUMN_Kills,Width=0.75,Justification=1,bRoundEndOnly=true)
-    ScoreboardColumns(6)=(Title="D",Type=COLUMN_Deaths,Width=0.75,Justification=1,bRoundEndOnly=true)
-    ScoreboardColumns(7)=(Title="Score",Type=COLUMN_Score,Width=1.5,Justification=1)
-    ScoreboardColumns(8)=(Title="Ping",Type=COLUMN_Ping,Width=1.0,Justification=1)
+    ScoreboardColumns(2)=(Title="",Type=COLUMN_Flag,Width=0.75)
+    ScoreboardColumns(3)=(Title="Role",Type=COLUMN_Role,Width=5.0,bFriendlyOnly=true)
+    ScoreboardColumns(4)=(Title="",Type=COLUMN_PointsCombat,Width=1.5,bFriendlyOnly=true,IconMaterial=Material'DH_InterfaceArt2_tex.Icons.points_combat')
+    ScoreboardColumns(5)=(Title="",Type=COLUMN_PointsSupport,Width=1.5,bFriendlyOnly=true,IconMaterial=Material'DH_InterfaceArt2_tex.Icons.points_support')
+    ScoreboardColumns(6)=(Title="K",Type=COLUMN_Kills,Width=0.75,Justification=1,bRoundEndOnly=true)
+    ScoreboardColumns(7)=(Title="D",Type=COLUMN_Deaths,Width=0.75,Justification=1,bRoundEndOnly=true)
+    ScoreboardColumns(8)=(Title="Score",Type=COLUMN_Score,Width=1.5,Justification=1)
+    ScoreboardColumns(9)=(Title="Ping",Type=COLUMN_Ping,Width=1.0,Justification=1)
 
+    ScoreboardLabelColor=(R=128,G=128,B=128)
     SquadHeaderColor=(R=64,G=64,B=64,A=192)
     PlayerBackgroundColor=(R=0,G=0,B=0,A=192)
     SelfBackgroundColor=(R=32,G=32,B=32,A=192)
@@ -906,12 +959,13 @@ defaultproperties
     PingLength=1.5
     MyTeamIndex=2
     PlayersText="Players"
-    TickHealthText="Tick"
-    NetHealthText="Loss"
+    TickHealthText="Tick: "
+    NetHealthText="Loss: "
     MunitionPercentageText="Munitions"
     PatronLeadMaterial=Texture'DH_InterfaceArt2_tex.Patron_Icons.PATRON_Lead'
     PatronBronzeMaterial=Texture'DH_InterfaceArt2_tex.Patron_Icons.PATRON_Bronze'
     PatronSilverMaterial=Texture'DH_InterfaceArt2_tex.Patron_Icons.PATRON_Silver'
     PatronGoldMaterial=Texture'DH_InterfaceArt2_tex.Patron_Icons.PATRON_Gold'
     DeveloperIconMaterial=Texture'DH_InterfaceArt2_tex.HUD.developer'
+    FlagsTexture=Texture'DH_InterfaceArt2_tex.Scoreboard.Flags'
 }

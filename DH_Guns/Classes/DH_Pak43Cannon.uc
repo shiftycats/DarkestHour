@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_Pak43Cannon extends DHATGunCannon;
@@ -26,6 +26,10 @@ defaultproperties
     ProjectileClass=class'DH_Guns.DH_Pak43CannonShell'
     PrimaryProjectileClass=class'DH_Guns.DH_Pak43CannonShell'
     SecondaryProjectileClass=class'DH_Guns.DH_Pak43CannonShellHE'
+
+    nProjectileDescriptions(0)="PzGr.39/43"
+    nProjectileDescriptions(1)="Sprgr.Patr."
+
     InitialPrimaryAmmo=8
     InitialSecondaryAmmo=4
     MaxPrimaryAmmo=50

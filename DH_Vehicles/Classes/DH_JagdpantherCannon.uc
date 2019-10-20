@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DH_JagdpantherCannon extends DHVehicleCannon;
@@ -35,6 +35,10 @@ defaultproperties
     ProjectileClass=class'DH_Vehicles.DH_JagdpantherCannonShell'
     PrimaryProjectileClass=class'DH_Vehicles.DH_JagdpantherCannonShell'
     SecondaryProjectileClass=class'DH_Vehicles.DH_JagdpantherCannonShellHE'
+
+    nProjectileDescriptions(0)="PzGr.39/43"
+    nProjectileDescriptions(1)="Sprgr.Patr."
+
     InitialPrimaryAmmo=30
     InitialSecondaryAmmo=7
     MaxPrimaryAmmo=42

@@ -1,6 +1,6 @@
 //==============================================================================
 // Darkest Hour: Europe '44-'45
-// Darklight Games (c) 2008-2018
+// Darklight Games (c) 2008-2019
 //==============================================================================
 
 class DHCannonShellHE extends DHCannonShell
@@ -47,7 +47,7 @@ defaultproperties
     ExplosionSound(1)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode02'
     ExplosionSound(2)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode03'
     ExplosionSound(3)=SoundGroup'ProjectileSounds.cannon_rounds.OUT_HE_explode04'
-    bHasTracer=false
+    bHasTracer=true
     ShakeRotMag=(Y=0.0)
     ShakeRotRate=(Z=2500.0)
     BlurTime=6.0
@@ -63,6 +63,7 @@ defaultproperties
     ShellHitWaterEffectClass=class'DH_Effects.DHShellExplosion_MediumHE'
     DamageRadius=300.0
     MyDamageType=class'DH_Engine.DHShellHE75mmDamageType'
+    ShellImpactDamage=class'DH_Engine.DHShellHEImpactDamageType'
     ExplosionDecal=class'ROEffects.ArtilleryMarkDirt'
     ExplosionDecalSnow=class'ROEffects.ArtilleryMarkSnow'
     LifeSpan=10.0
