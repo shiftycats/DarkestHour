@@ -12,7 +12,7 @@ struct HintInfo
     var localized string    Text;  // hint display text
 };
 
-const                   HINT_COUNT = 64;
+const                   HINT_COUNT = 76;
 
 var     HintInfo        Hints[HINT_COUNT];        // array of hints in default properties
 var     array<byte>     QueuedHintIndices;        // queue of hints waiting to be displayed in turn
@@ -31,13 +31,27 @@ function PostBeginPlay()
 function StartCheckingForHints()
 {
     QueuedHintIndices.Length = 0;
-    QueueHint(0, true); // toss in the initial "welcome to DH" hint, in case that hasn't been shown (ignored if has been)
+    QueueHint(0, true);     // Welcome to Darkest Hour!
+    QueueHint(52);          // Situation Map
+    QueueHint(50);          // Communication
+    QueueHint(51);          // VOIP Communication
+
     SetTimer(1.0, true);
 }
 
 // Non-state repeating hint check timer goes to DisplayingHint state if it finds any queued hint(s)
 simulated function Timer()
 {
+    local DHPlayer PC;
+
+    PC = DHPlayer(Owner);
+
+    if (PC != none && PC.IsSquadLeader())
+    {
+        QueueHint(54, true);    // Welcome, Squad Leader!
+        QueueHint(55, true);    // Command Menu
+    }
+
     if (QueuedHintIndices.Length > 0)
     {
         GotoState('DisplayingHint');
@@ -95,7 +109,7 @@ state PostDisplay
 }
 
 // Tries to add a new hint to the hint queue (valid if not previously used/displayed & same hint not already in the queue)
-function QueueHint(byte HintIndex, bool bForceNext)
+function QueueHint(byte HintIndex, optional bool bForceNext)
 {
     local int i;
 
@@ -190,12 +204,8 @@ defaultproperties
     Hints(10)=(Title="Mortar Undeploy",Text="To undeploy your mortar, press the %Deploy% key. Undeploying your mortar will reset your elevation and traverse settings.")
     Hints(11)=(Title="Artillery Targeting",Text="You can mark targets for your team's mortar and artillery operators while sighted with your binoculars. Pressing %FIRE% to mark a high-explosive target or press %ALTFIRE% to request a smoke target.")
     Hints(12)=(Title="Artillery Officer",Text="You are an artillery officer. You can mark artillery targets with binoculars. Call in long-range artillery with from a radio position or with the help of a radio operator.")
-    Hints(13)=(Title="Radio Operator",Text="You are a radio operator! Stay close to your artillery officer so he can call in artillery strikes!")
-    Hints(14)=(Title="Deployment Vehicle",Text="You are driving a deployment vehicle! When not in an objective and with no enemies nearby, your team can use it as a spawn point!")
-    Hints(16)=(Title="Deployment Vehicle",Text="Deployment vehicles can be critical in the outcome of any battle! Treat them with care! If you need to leave the vehicle, be sure to leave it in a safe area!")
-    Hints(20)=(Title="M1 Garand",Text="Firing the last round of an en bloc clip makes a distinctive audible ping indicating that your rifle is out of ammunition. Be careful, the enemy may take advantage of this.")
-    Hints(21)=(Title="Lee Enfield No.4",Text="The Lee Enfield No.4 can load two 5-rd stripper clips. After you have fired 5 rounds, you may reload the rifle with one clip. If you fire all your rounds, you will reload with two clips.")
-    Hints(22)=(Title="Gewehr 41",Text="The Gewehr 41 can load two 5-rd stripper clips. After you have fired 5 rounds, you may reload the rifle with one clip. If you fire all your rounds, you will reload with two clips.")
+    Hints(13)=(Title="Radio Operator",Text="You are a radio operator! The radio on your back can be used by friendly squad leaders to call in artillery strikes. Be sure to stick with your squad leader in case they need it!")
+
     Hints(40)=(Title="Vehicle Engines",Text="You have entered a vehicle. To start or stop the engine, press %FIRE%.")
     Hints(42)=(Title="Higgins Boat",Text="You are driving a Higgins boat. Lower the bow ramp by pressing %PREVWEAPON% so passengers and yourself can exit. To raise the bow ramp hit %NEXTWEAPON%.")
     Hints(43)=(Title="Resupply Trucks",Text="You are close to a resupply truck. Stand outside the back of the truck to resupply your ammunition.")
@@ -203,4 +213,32 @@ defaultproperties
     Hints(46)=(Title="Externally mounted MG",Text="This machine gun is externally mounted and can only be fired or reloaded if you unbutton the hatch")
     Hints(47)=(Title="Remote controlled MG",Text="This machine gun can only be fired from inside the vehicle, but it is externally mounted and you must unbutton the hatch to reload")
     Hints(48)=(Title="Externally mounted MG reload",Text="You need to unbutton the hatch (& not be using binoculars) to reload this externally mounted machine gun")
+
+    Hints(50)=(Title="Communication",Text="On the battlefield, communication is king! Press %STARTTYPING% to begin a text message. While typing, you can press TAB to cycle through communication channels.")
+    Hints(51)=(Title="VOIP Communication",Text="Use a microphone for communicating with your teammates! Press and hold %VOICETALK% to activate your microphone.")
+    Hints(52)=(Title="Situation Map",Text="Get situated! Press %SHOWOBJECTIVES% to toggle display of the situation map.")
+    Hints(53)=(Title="Map Interaction",Text="While viewing the situation map, you can press %JUMP% to toggle map interaction. You can zoom (scroll wheel) and pan (left-click and drag) the map.")
+    Hints(54)=(Title="Welcome, Squad Leader!",Text="You are now a squad leader! As a squad leader, your main job is to keep your squad fighting and working together effectively. Being a great squad leader can make all the difference in battle. These hint messages will help you get oriented in your new role!")
+    Hints(55)=(Title="Command Menu",Text="As a squad leader or assistant, press and hold [%CAPSLOCK%] to bring up your command menu. From this menu, you can place constructions, create rally points, spot enemies and more!")
+    Hints(56)=(Title="Squad Rally Points",Text="You are able to place rally points (spawn points) by pressing %PLACERALLYPOINT% when you have at least one other squadmate nearby. The rally point indicator in the bottom right of your screen indicates your ability to place a rally point.")
+    Hints(57)=(Title="Squad Rally Points",Text="Keeping at least one rally point active for your squad is the single most important thing you can do as a squad leader. Without one, it will be difficult for your squad to get to the front lines and fight together.")
+    Hints(58)=(Title="Squad Orders",Text="It’s important to let your squad know their objective (eg. attack, defend, move). You can set your squad’s current objective by right-clicking on the situation map.")
+    Hints(59)=(Title="Squad Rally Points",Text="Enemy fire and nearby enemies can destroy your squad’s rally points. Be sure to place them in safe areas so that you and your squad can get to the front lines quickly!")
+    Hints(60)=(Title="Managing Rally Points",Text="You are able to maintain two (2) rally points at once. However, only one may be active at a time. From the situation map, you can swap the active rally point by right-clicking the active rally point and selecting “Set as Secondary”.")
+    Hints(61)=(Title="Behind Enemy Lines",Text="You are behind enemy lines! Rally points behind enemy lines are less effective. Be sure to place your squad’s rally points in your own territory whenever possible.")
+    Hints(62)=(Title="Map Markers",Text="As a squad leader or assistant, you are able to place markers on the map that are visible to your whole team. To add a marker, right-click the map and select one of the markers. For example, you can add an “Enemy Tank”marker to alert your team of enemy tank in an area.")
+    Hints(63)=(Title="Shovels",Text="The shovel is used to build constructions. Press [%FIRE%] while looking at a friendly construction to help in the build effort!")
+    Hints(64)=(Title="Shovels",Text="Shovels can also be used to deconstruct constructions! Press [%ALTFIRE%] while looking at a construction to begin deconstruction. If a friendly supply cache is nearby, the supply cost of deconstructed friendly constructions will be refunded to that cache. In a pinch, they can also be used as a melee weapon!")
+    Hints(65)=(Title="Logistics & Supply",Text="You are in a supply zone! This means that there is a nearby supply truck or supply cache. Supplies are used for the creation of constructions such as anti-tank guns, resupply points and fortifications. While you are in a supply zone, the number of available supplies will be displayed at the top of your screen.")
+    Hints(66)=(Title="Platoon HQ",Text="A Platoon HQ is an extremely useful construction as it provides a team-wide spawn point. An effective team will be sure to always build Platoon HQs in safe areas so that your forces can get to the battlefield quickly.")
+    Hints(67)=(Title="Squad Assistants",Text="Being a squad leader can sometimes be a tough job! To help you manage your squad, you can assign one of your squad members to be your assistant. Squad assistants are able to place constructions and create map markers. To assign an assistant, press [%SQUADMENU%], then right-click one of your squad members, and select “Assign as Assistant”.")
+    Hints(68)=(Title="Squad Management",Text="To manage your squad members, press [%SQUADMENU%] and right-click a squad member. You may also look at your squadmate and use the Command Menu (%SHOWORDERMENU%).")
+    Hints(69)=(Title="Squad Invites",Text="You can invite unassigned teammates to your squad by looking at them and bringing up the Command Menu (%SHOWORDERMENU%), then selecting the player option.")
+    Hints(70)=(Title="Supply Cache",Text="Supply Caches are constructions that store and slowly generate supplies over time. Be sure that you and your team create new Supply Caches as the battle progresses so that supplies are always within reach.")
+    Hints(71)=(Title="Supply Transfers",Text="While driving a Logistics Truck near a Supply Cache, you are able to transfer supplies between your truck and the Supply Cache. This can be extremely useful for moving supplies around the battlefield! Press [%RELOAD%] to load supplies, and [%ROMGOPERATION%] to unload supplies from the truck.")
+    Hints(72)=(Title="Radio Operator",Text="You are a radio operator! The radio on your back can be used by friendly squad leaders to call in artillery strikes, so be sure to stick with your squad leader in case they need it!")
+    Hints(73)=(Title="Constructions",Text="As a squad leader, you can create constructions (fortifications, ammunition to help your team in the fight.Most constructions cost supplies to create. Some constructions like the")
+    Hints(74)=(Title="Command Chat",Text="As a squad leader, you have access to a private Command chat channel for squad leaders only. Use this channel to")
+    Hints(75)=(Title="VOIP Channel",Text="To switch between Squad and Local (proximity) VOIP channels, press %SPEAK SQUAD% and %SPEAK LOCAL%, respectively.")
 }
+
