@@ -5,6 +5,8 @@
 
 class DHPlayerReplicationInfo extends ROPlayerReplicationInfo;
 
+const HUD_PLAYER_NAME_STATES_MAX = 2;
+
 // Patron status
 enum EPatronTier
 {
@@ -18,9 +20,11 @@ enum EPatronTier
 var     EPatronTier             PatronTier;
 var     bool                    bIsDeveloper;
 
-var     float                   NameDrawStartTime;
-var     float                   LastNameDrawTime;
 var     int                     DHKills;
+
+// Name tags
+var     float                   NameDrawStartTimes[HUD_PLAYER_NAME_STATES_MAX];
+var     float                   NameDrawEndTimes[HUD_PLAYER_NAME_STATES_MAX];
 
 // Squad
 var     int                     SquadIndex;

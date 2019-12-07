@@ -27,6 +27,7 @@ struct DHObituary
 const   MAX_OBJ_ON_SIT = 12; // the maximum objectives that can be listed down the side on the situational map (not on the map itself)
 
 const   VOICE_ICON_DIST_MAX = 2624.672119; // maximum distance from a talking player at which we will show a voice icon
+const   PLAYER_NAME_STATES_MAX = 2;
 
 var DHGameReplicationInfo   DHGRI;
 
@@ -180,6 +181,9 @@ var     Material            RallyPointIconFlag;
 var     Material            RallyPointIconBadLocation;
 var     Material            RallyPointIconMissingSquadmate;
 var     Material            RallyPointIconKey;
+
+var     float               PlayerNameMaxRadiusInMeters;
+var     float               PlayerNameMinimizeThresholdInMeters;
 
 // Modified to ignore the Super in ROHud, which added a hacky way of changing the compass rotating texture
 // We now use a DH version of the compass texture, with a proper TexRotator set up for it
@@ -2172,6 +2176,10 @@ function DrawPlayerNames(Canvas C)
     local byte                    Alpha;
     local bool                    bMayBeValid, bCurrentlyValid, bFoundMatch, bForceHideAllNames;
     local color                   IconMaterialColor;
+    local byte                    Alphas[PLAYER_NAME_STATES_MAX];
+    local float                   FadeTimes[PLAYER_NAME_STATES_MAX];
+    local float                   LowestFadeTime;
+    local int                     DrawStateIndex;
 
     if (PawnOwner == none || PlayerOwner == none)
     {
@@ -2294,7 +2302,7 @@ function DrawPlayerNames(Canvas C)
     }
 
     // STAGE 2: find all other pawns within 25 meters & build our Pawns array (excluding our own pawn & any LookedAtPawn we've already added)
-    foreach RadiusActors(class'Pawn', P, class'DHUnits'.static.MetersToUnreal(25.0), ViewLocation)
+    foreach RadiusActors(class'Pawn', P, class'DHUnits'.static.MetersToUnreal(PlayerNameMaxRadiusInMeters), ViewLocation)
     {
         if (P != PawnOwner && P != LookedAtPawn)
         {
@@ -2426,46 +2434,63 @@ function DrawPlayerNames(Canvas C)
             }
         }
 
-        if (bCurrentlyValid && !bForceHideAllNames)
+        // We update the fade times depending on which state we are in.
+        DrawStateIndex = int(VSize(PawnOwner.Location - P.Location) > class'DHUnits'.static.MetersToUnreal(Min(PlayerNameMinimizeThresholdInMeters, PlayerNameMaxRadiusInMeters)));
+
+        for (j = 0; j < OtherPRI.HUD_PLAYER_NAME_STATES_MAX && j < arraycount(FadeTimes); ++j)
         {
-            // Player has just become valid, as his name wasn't drawn last frame (his LastNameDrawTime was prior to the recorded HUDLastNameDrawTime)
-            if (OtherPRI.LastNameDrawTime < HUDLastNameDrawTime)
+            if (bCurrentlyValid && !bForceHideAllNames && j <= DrawStateIndex)
+            // if (bCurrentlyValid && !bForceHideAllNames)
             {
-                // Check if player's name was previously in the process of being faded out
-                HighestFadeInReached = FClamp(OtherPRI.LastNameDrawTime - OtherPRI.NameDrawStartTime, 0.0, 1.0); // maximum fade in value reached while player was valid
-                NameFadeTime = OtherPRI.LastNameDrawTime + HighestFadeInReached - Now;
-
-                // Now set his new NameDrawStartTime, so fade in can be calculated in future frames
-                // And if player was being faded out, we'll fudge the NameDrawStartTime so we begin drawing his name at the same alpha level, but now fading back in
-                OtherPRI.NameDrawStartTime = Now;
-
-                if (NameFadeTime > 0.0)
+                // Player has just become valid, as his name wasn't drawn last frame (his LastNameDrawTime was prior to the recorded HUDLastNameDrawTime)
+                if (OtherPRI.NameDrawEndTimes[j] < HUDLastNameDrawTime)
                 {
-                    OtherPRI.NameDrawStartTime -= FMin(NameFadeTime, 1.0);
+                    // Check if player's name was previously in the process of being faded out
+                    HighestFadeInReached = FClamp(OtherPRI.NameDrawEndTimes[j] - OtherPRI.NameDrawStartTimes[j], 0.0, 1.0); // maximum fade in value reached while player was valid
+                    FadeTimes[j] = OtherPRI.NameDrawEndTimes[j] + HighestFadeInReached - Now;
+
+                    // Now set his new NameDrawStartTime, so fade in can be calculated in future frames
+                    // And if player was being faded out, we'll fudge the NameDrawStartTime so we begin drawing his name at the same alpha level, but now fading back in
+                    OtherPRI.NameDrawStartTimes[j] = Now;
+
+                    if (FadeTimes[j] > 0.0)
+                    {
+                        OtherPRI.NameDrawStartTimes[j] -= FMin(FadeTimes[j], 1.0);
+                    }
                 }
+
+                // Update player's LastNameDrawTime & NameFadeTime
+                // Note even if player is off screen & won't actually be drawn, we still update LastNameDrawTime as we don't want his name to fade in if we turn towards him
+                OtherPRI.NameDrawEndTimes[j] = Now;
+                FadeTimes[j] = Now - OtherPRI.NameDrawStartTimes[j];
+            }
+            // Player isn't currently valid, but recently was & his name may still need to be shown fading out
+            else
+            {
+                // Note the name may fade out in less than 1 second if the player wasn't drawn long enough to fully fade in
+                // So we 1st calculate the maximum fade in value reached while the player was valid
+                HighestFadeInReached = FClamp(OtherPRI.NameDrawEndTimes[j] - OtherPRI.NameDrawStartTimes[j], 0.0, 1.0);
+                FadeTimes[j] = OtherPRI.NameDrawEndTimes[j] + HighestFadeInReached - Now;
             }
 
-            // Update player's LastNameDrawTime & NameFadeTime
-            // Note even if player is off screen & won't actually be drawn, we still update LastNameDrawTime as we don't want his name to fade in if we turn towards him
-            OtherPRI.LastNameDrawTime = Now;
-            NameFadeTime = Now - OtherPRI.NameDrawStartTime;
+            if (j < 1 || FadeTimes[j] > FadeTimes[j - 1])
+            {
+                LowestFadeTime = FadeTimes[j];
+            }
+        }
 
+        if (bCurrentlyValid && !bForceHideAllNames)
+        {
             // A slight fade threshold before starting to draw looked at player's name, just to stop it flickering up briefly if you only very quickly track over him
-            if (NameFadeTime < 0.05 && P == LookedAtPawn)
+            if (LowestFadeTime < 0.05 && P == LookedAtPawn)
             {
                 continue;
             }
         }
-        // Player isn't currently valid, but recently was & his name may still need to be shown fading out
         else
         {
-            // Note the name may fade out in less than 1 second if the player wasn't drawn long enough to fully fade in
-            // So we 1st calculate the maximum fade in value reached while the player was valid
-            HighestFadeInReached = FClamp(OtherPRI.LastNameDrawTime - OtherPRI.NameDrawStartTime, 0.0, 1.0);
-            NameFadeTime = OtherPRI.LastNameDrawTime + HighestFadeInReached - Now;
-
             // If player has fully faded out now, ignore him & remove from NamedPawns array
-            if (NameFadeTime <= 0.0)
+            if (LowestFadeTime <= 0.0)
             {
                 NamedPawns.Remove(i, 1);
                 continue;
@@ -2511,14 +2536,21 @@ function DrawPlayerNames(Canvas C)
         // And if player's name is fading in or out, lower the drawing alpha value accordingly
         C.DrawColor = GetPlayerColor(OtherPRI);
 
-        if (NameFadeTime < 1.0 && NameFadeTime >= 0.0)
+        for (j = 0; j < arraycount(FadeTimes) && j < arraycount(Alphas); ++j)
         {
-            Alpha = byte(NameFadeTime * 255.0);
-            C.DrawColor.A = Alpha;
-        }
-        else
-        {
-            Alpha = 255;
+            if (FadeTimes[j] < 1.0 && FadeTimes[j] >= 0.0)
+            {
+                Alphas[j] = byte(FadeTimes[j] * 255.0);
+
+                if (j == 0)
+                {
+                    C.DrawColor.A = Alphas[0];
+                }
+            }
+            else
+            {
+                Alphas[j] = 255;
+            }
         }
 
         // Get the screen location for drawing player name
@@ -2546,6 +2578,8 @@ function DrawPlayerNames(Canvas C)
         {
             C.DrawTile(PlayerNameIconMaterial, 16.0, 16.0, 0.0, 0.0, PlayerNameIconMaterial.MaterialUSize(), PlayerNameIconMaterial.MaterialVSize());
         }
+
+        C.DrawColor.A = Alphas[1];
 
         C.SetPos(DrawLocation.X - TextSize.X * 0.5, DrawLocation.Y - 32.0);
         DrawShadowedTextClipped(C, PlayerName);
@@ -6015,6 +6049,8 @@ defaultproperties
     InvalidSpawnSettingsText="Press [ESC] to confirm your role, vehicle, and spawnpoint selections"
 
     // Screen indicator icons & player HUD
+    PlayerNameMaxRadiusInMeters=50.0
+    PlayerNameMinimizeThresholdInMeters=25.0
     CompassNeedle=(WidgetTexture=TexRotator'DH_InterfaceArt_tex.HUD.Compass_rotator') // using DH version of compass background texture
     PlayerNameIconMaterial=Material'DH_InterfaceArt_tex.HUD.player_icon_world'
     PlayerNameFilledIconMaterial=Material'DH_InterfaceArt_tex.HUD.player_icon_world_filled'
