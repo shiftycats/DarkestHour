@@ -57,8 +57,8 @@ defaultproperties
     WheelLatSlipFunc=(Points=(,(InVal=30.0,OutVal=0.009),(InVal=45.0),(InVal=10000000000.0)))
     WheelLongFrictionScale=1.1
     WheelLatFrictionScale=1.55
-    WheelSuspensionTravel=10.0
-    WheelSuspensionMaxRenderTravel=5.0
+    WheelSuspensionTravel=0.0
+    WheelSuspensionMaxRenderTravel=2.0
     ChassisTorqueScale=0.095
     MaxSteerAngleCurve=(Points=((OutVal=20.0),(InVal=500.0,OutVal=20.0),(InVal=600.0,OutVal=15.0),(InVal=1000000000.0,OutVal=10.0)))
     ChangeUpPoint=1990.0
@@ -94,7 +94,7 @@ defaultproperties
     ShutDownSound=Sound'Vehicle_Engines.sdkfz251.sdkfz251_engine_stop'
 
     // Visual effects
-    ExhaustPipes(0)=(ExhaustPosition=(X=-180.0,Y=42.0,Z=54.0),ExhaustRotation=(Pitch=63000,Yaw=32768))
+    ExhaustPipes(0)=(ExhaustPosition=(X=-32.0,Y=-75.0,Z=33.0),ExhaustRotation=(Pitch=-1024,Yaw=-20000))
     SteerBoneName="Drive_wheel"
     SteeringScaleFactor=2.0
 
@@ -114,6 +114,9 @@ defaultproperties
     VehicleHudOccupantsX(5)=0.625
     VehicleHudOccupantsY(5)=0.75
     SpawnOverlay(0)=Material'DH_InterfaceArt_tex.Vehicles.m8_greyhound'
+
+    // Shadow
+    ShadowZOffset=35
 
     // Physics wheels
     Begin Object Class=SVehicleWheel Name=RFWheel

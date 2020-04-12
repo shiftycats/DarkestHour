@@ -23,5 +23,6 @@ defaultproperties
     AmmoShellTexture=Texture'DH_InterfaceArt_tex.Tank_Hud.StuartShell'
     AmmoShellReloadTexture=Texture'DH_InterfaceArt_tex.Tank_Hud.StuartShell_reload'
     FireImpulse=(X=-30000.0)
+    PlayerCameraBone="com_camera"
 }
 

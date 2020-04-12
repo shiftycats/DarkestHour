@@ -9,7 +9,7 @@ defaultproperties
 {
     // Turret mesh
     Mesh=SkeletalMesh'DH_DaimlerMk1_anm.turret'
-    Skins(0)=Texture'DH_DaimlerMk1_tex.turret.turret'
+    Skins(0)=Texture'DH_DaimlerMk1_tex.body.body_02'
     CollisionStaticMesh=StaticMesh'DH_DaimlerMkI_stc.collision.turret_collision'
     FireEffectScale=1.25 // turret fire is larger & positioned in centre of open turret
     FireEffectOffset=(X=5.0,Y=20.0,Z=0.0)
@@ -59,10 +59,14 @@ defaultproperties
     TracerFrequency=5
 
     // Weapon fire
+    WeaponFireAttachmentBone="muzzle"
     WeaponFireOffset=10.0
+
     AddedPitch=26
     EffectEmitterClass=class'ROEffects.TankCannonFireEffectTypeC' // smaller muzzle flash effect
-    AltFireOffset=(X=-82.0,Y=11.0,Z=0.0)
+    AltFireAttachmentBone="coax"
+    AltFireOffset=(X=0,Y=0,Z=0)
+    AltFireSpawnOffsetX=0.0
     ShakeRotRate=(Z=600.0)
     ShakeOffsetMag=(Z=5.0)
     ShakeOffsetTime=6.0
