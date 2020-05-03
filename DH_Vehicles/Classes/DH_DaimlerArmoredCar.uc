@@ -36,6 +36,8 @@ defaultproperties
     DrivePos=(X=10.0,Y=-5.0,Z=2.0)
     DriveAnim="VBA64_driver_idle_close"
 
+    DriverAttachmentBone="driver_player"
+
     // Hull armor
     FrontArmor(0)=(Thickness=1.59,Slope=-30.0,MaxRelativeHeight=71.0,LocationName="lower")
     FrontArmor(1)=(Thickness=1.27,Slope=60.0,MaxRelativeHeight=101.5,LocationName="upper")
@@ -58,7 +60,8 @@ defaultproperties
     WheelLongFrictionScale=1.1
     WheelLatFrictionScale=1.55
     WheelSuspensionTravel=0.0
-    WheelSuspensionMaxRenderTravel=2.0
+    WheelSuspensionOffset=-3.0
+    WheelSuspensionMaxRenderTravel=5.0
     ChassisTorqueScale=0.095
     MaxSteerAngleCurve=(Points=((OutVal=20.0),(InVal=500.0,OutVal=20.0),(InVal=600.0,OutVal=15.0),(InVal=1000000000.0,OutVal=10.0)))
     ChangeUpPoint=1990.0
@@ -113,6 +116,7 @@ defaultproperties
     VehicleHudOccupantsY(4)=0.8
     VehicleHudOccupantsX(5)=0.625
     VehicleHudOccupantsY(5)=0.75
+
     SpawnOverlay(0)=Material'DH_InterfaceArt_tex.Vehicles.m8_greyhound'
 
     // Shadow
@@ -123,42 +127,38 @@ defaultproperties
         SteerType=VST_Steered
         BoneName="wheel.F.R"
         BoneRollAxis=AXIS_Y
-        //BoneOffset=(Y=11.0)
         SupportBoneName="axle.F.R"
         SupportBoneAxis=AXIS_X
-        WheelRadius=30.0
+        WheelRadius=32.0
     End Object
     Wheels(0)=SVehicleWheel'DH_Vehicles.DH_DaimlerArmoredCar.RFWheel'
     Begin Object Class=SVehicleWheel Name=LFWheel
         SteerType=VST_Steered
         BoneName="wheel.F.L"
         BoneRollAxis=AXIS_Y
-        //BoneOffset=(Y=-11.0)
         SupportBoneName="axle.F.L"
         SupportBoneAxis=AXIS_X
         bLeftTrack=true
-        WheelRadius=30.0
+        WheelRadius=32.0
     End Object
     Wheels(1)=SVehicleWheel'DH_Vehicles.DH_DaimlerArmoredCar.LFWheel'
     Begin Object Class=SVehicleWheel Name=MRWheel
         bPoweredWheel=true
         BoneName="wheel.B.R"
         BoneRollAxis=AXIS_Y
-        //BoneOffset=(Y=11.0)
         SupportBoneName="axle.B.R"
         SupportBoneAxis=AXIS_X
-        WheelRadius=30.0
+        WheelRadius=32.0
     End Object
     Wheels(2)=SVehicleWheel'DH_Vehicles.DH_DaimlerArmoredCar.MRWheel'
     Begin Object Class=SVehicleWheel Name=MLWheel
         bPoweredWheel=true
         BoneName="wheel.B.L"
         BoneRollAxis=AXIS_Y
-        //BoneOffset=(Y=-11.0)
         SupportBoneName="axle.B.L"
         SupportBoneAxis=AXIS_X
         bLeftTrack=true
-        WheelRadius=30.0
+        WheelRadius=32.0
     End Object
     Wheels(3)=SVehicleWheel'DH_Vehicles.DH_DaimlerArmoredCar.MLWheel'
 

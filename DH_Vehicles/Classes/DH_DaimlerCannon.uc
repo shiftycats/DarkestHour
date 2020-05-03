@@ -51,11 +51,11 @@ defaultproperties
     TertiarySpread=0.04
 
     // Coaxial MG ammo
-    AltFireProjectileClass=class'DH_Weapons.DH_30CalBullet'
-    InitialAltAmmo=250
-    NumMGMags=5
-    AltFireInterval=0.12
-    TracerProjectileClass=class'DH_Weapons.DH_30CalTracerBullet'
+    AltFireProjectileClass=class'DH_Vehicles.DH_BesaVehicleBullet'
+    InitialAltAmmo=225
+    NumMGMags=10
+    AltFireInterval=0.092
+    TracerProjectileClass=class'DH_Vehicles.DH_BesaVehicleTracerBullet'
     TracerFrequency=5
 
     // Weapon fire
@@ -75,8 +75,8 @@ defaultproperties
     CannonFireSound(0)=SoundGroup'Inf_Weapons.PTRD.PTRD_fire01'
     CannonFireSound(1)=SoundGroup'Inf_Weapons.PTRD.PTRD_fire02'
     CannonFireSound(2)=SoundGroup'Inf_Weapons.PTRD.PTRD_fire03'
-    AltFireSoundClass=SoundGroup'DH_WeaponSounds.30Cal.30cal_FireLoop01'
-    AltFireEndSound=SoundGroup'DH_WeaponSounds.30Cal.30cal_FireEnd01'
+    AltFireSoundClass=SoundGroup'DH_WeaponSounds.Besa.Besa_FireLoop'
+    AltFireEndSound=SoundGroup'DH_WeaponSounds.Besa.Besa_FireEnd'
     ReloadStages(0)=(Sound=Sound'DH_AlliedVehicleSounds.Sherman.ShermanReload01')
     ReloadStages(1)=(Sound=Sound'DH_AlliedVehicleSounds.Sherman.ShermanReload02')
     ReloadStages(2)=(Sound=Sound'DH_AlliedVehicleSounds.Sherman.ShermanReload03')
