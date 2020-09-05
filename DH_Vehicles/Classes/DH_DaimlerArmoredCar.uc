@@ -17,10 +17,10 @@ defaultproperties
     ReinforcementCost=4
 
     // Hull mesh
-    Mesh=SkeletalMesh'DH_DaimlerMk1_anm.body'
+    Mesh=SkeletalMesh'DH_DaimlerMk1_anm.body_ext'
     Skins(0)=Texture'DH_DaimlerMk1_tex.body.body_01'
     Skins(1)=Texture'DH_DaimlerMk1_tex.body.body_02'
-    Skins(2)=Texture'DH_DaimlerMk1_tex.body.interior'
+    Skins(2)=Texture'DH_DaimlerMk1_tex.body.body_int'
 
     // Vehicle weapons & passengers
     PassengerWeapons(0)=(WeaponPawnClass=class'DH_Vehicles.DH_DaimlerCannonPawn',WeaponBone="Turret_placement")
@@ -30,9 +30,9 @@ defaultproperties
     //PassengerPawns(3)=(AttachBone="body",DrivePos=(X=-125.0,Y=75.0,Z=105.0),DriveRot=(Yaw=16384),DriveAnim="VHalftrack_Rider5_idle")
 
     // Driver
-    DriverPositions(0)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body',TransitionUpAnim="Overlay_Out",ViewPitchUpLimit=2730,ViewPitchDownLimit=60065,ViewPositiveYawLimit=9500,ViewNegativeYawLimit=-9500)
-    DriverPositions(1)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body',TransitionUpAnim="driver_hatch_open",TransitionDownAnim="Overlay_In",DriverTransitionAnim="VBA64_driver_close",ViewPitchUpLimit=9500,ViewPitchDownLimit=60065,ViewPositiveYawLimit=16000,ViewNegativeYawLimit=-16000)
-    DriverPositions(2)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body',TransitionDownAnim="driver_hatch_close",DriverTransitionAnim="VBA64_driver_open",ViewPitchUpLimit=9500,ViewPitchDownLimit=62835,ViewPositiveYawLimit=16000,ViewNegativeYawLimit=-16000,bExposed=true)
+    DriverPositions(0)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionUpAnim="overlay_out",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192)
+    DriverPositions(1)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionUpAnim="driver_hatch_open",TransitionDownAnim="overlay_in",DriverTransitionAnim="VBA64_driver_close",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192)
+    DriverPositions(2)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionDownAnim="driver_hatch_close",DriverTransitionAnim="VBA64_driver_open",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192,bExposed=true)
     DrivePos=(X=10.0,Y=-5.0,Z=2.0)
     DriveAnim="VBA64_driver_idle_close"
 
@@ -98,8 +98,8 @@ defaultproperties
 
     // Visual effects
     ExhaustPipes(0)=(ExhaustPosition=(X=-32.0,Y=-75.0,Z=33.0),ExhaustRotation=(Pitch=-1024,Yaw=-20000))
-    SteerBoneName="Drive_wheel"
-    SteeringScaleFactor=2.0
+    SteerBoneName="steering_wheel"
+    SteeringScaleFactor=4.0
 
     // HUD
     VehicleHudImage=Texture'DH_InterfaceArt_tex.Tank_Hud.greyhound_body'
