@@ -13,7 +13,7 @@ defaultproperties
     bIsApc=true
     bHasTreads=false
     bSpecialTankTurning=false
-    VehicleMass=8.0
+    VehicleMass=6.0
     ReinforcementCost=4
 
     // Hull mesh
@@ -33,7 +33,7 @@ defaultproperties
     DriverPositions(0)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionUpAnim="overlay_out",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192)
     DriverPositions(1)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionUpAnim="driver_hatch_open",TransitionDownAnim="overlay_in",DriverTransitionAnim="VBA64_driver_close",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192)
     DriverPositions(2)=(PositionMesh=SkeletalMesh'DH_DaimlerMk1_anm.body_int',TransitionDownAnim="driver_hatch_close",DriverTransitionAnim="VBA64_driver_open",ViewPitchUpLimit=2048,ViewPitchDownLimit=63488,ViewPositiveYawLimit=8192,ViewNegativeYawLimit=-8192,bExposed=true)
-    DrivePos=(X=10.0,Y=-5.0,Z=2.0)
+    DrivePos=(X=25.0,Y=0.0,Z=-27.0)
     DriveAnim="VBA64_driver_idle_close"
 
     DriverAttachmentBone="driver_player"
@@ -102,9 +102,9 @@ defaultproperties
     SteeringScaleFactor=4.0
 
     // HUD
-    VehicleHudImage=Texture'DH_InterfaceArt_tex.Tank_Hud.greyhound_body'
-    VehicleHudTurret=TexRotator'DH_InterfaceArt_tex.Tank_Hud.Greyhound_turret_rot'
-    VehicleHudTurretLook=TexRotator'DH_InterfaceArt_tex.Tank_Hud.Greyhound_turret_look'
+    VehicleHudImage=Texture'DH_DaimlerMk1_tex.interface.daimler_body'
+    VehicleHudTurret=TexRotator'DH_DaimlerMk1_tex.interface.daimler_turret_rot'
+    VehicleHudTurretLook=TexRotator'DH_DaimlerMk1_tex.interface.daimler_turret_look'
     VehicleHudEngineX=0.51
     VehicleHudOccupantsX(0)=0.45
     VehicleHudOccupantsY(0)=0.35
