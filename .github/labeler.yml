@@ -1,2 +1,2 @@
 levels:
-  - any:['/**/*.rom']
+- any:['/**/*.rom']
