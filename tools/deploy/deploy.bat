@@ -28,6 +28,7 @@ if not exist "%REPO_ROOT%" (
 
 echo Using container CLI: docker
 
+rem Start the Docker daemon.
 docker desktop start
 
 rem Build the image and capture its ID.
