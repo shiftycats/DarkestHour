@@ -547,10 +547,10 @@ function AddOfficialServersToFavorites()
 
 defaultproperties
 {
-    StaticFavorites(0)=(IP="104.243.41.183",Port=7757,QueryPort=7757,ServerName="Official Server #1")
-    StaticFavorites(1)=(IP="104.243.41.183",Port=7777,QueryPort=7777,ServerName="Official Server #2")
-    StaticFavorites(2)=(IP="104.243.41.183",Port=7817,QueryPort=7817,ServerName="Official Server #3")
-    StaticFavorites(3)=(IP="104.243.41.183",Port=7797,QueryPort=7797,ServerName="Official Armored Server #1")
+    StaticFavorites(0)=(IP="104.243.41.183",Port=7757,QueryPort=7758,ServerName="Official Server #1")
+    StaticFavorites(1)=(IP="104.243.41.183",Port=7777,QueryPort=7778,ServerName="Official Server #2")
+    StaticFavorites(2)=(IP="104.243.41.183",Port=7817,QueryPort=7818,ServerName="Official Server #3")
+    StaticFavorites(3)=(IP="104.243.41.183",Port=7797,QueryPort=7798,ServerName="Official Armored Server #1")
     
     // Render Entry.rom instead of background
     bRenderWorld=true
