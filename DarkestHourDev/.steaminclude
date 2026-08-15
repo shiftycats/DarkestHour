@@ -15,7 +15,6 @@ bdk-default.json
 !*.git
 !*.gitignore
 !*.steaminclude
-!*.ucl
 !submodules
 !tools
 !DarkestHourDev/System/DarkestHourDev.ini
